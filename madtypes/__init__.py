@@ -15,6 +15,16 @@ class Annotation:
 
 
 class Schema(dict):
+    def __init__(self, **kwargs):
+        for key, value in self.__annotations__.items():
+            if key in kwargs:
+                if isinstance(kwargs[key], value):
+                    self[key] = kwargs[key]
+                else:
+                    raise TypeError(
+                        f"{kwargs[key]} is not an instance of {value}"
+                    )
+
     @classmethod
     def get_fields(cls):
         return list(cls.__annotations__.items())

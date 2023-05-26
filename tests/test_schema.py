@@ -309,6 +309,14 @@ def test_type_error():
         e.value = "foo"
 
 
+def test_instantiation_type_error():
+    class Item(Schema):
+        value: int
+
+    with pytest.raises(TypeError):
+        Item(value="foo")  # any easy way to enable linter here ?
+
+
 def test_complex_type_error():
     class Item(Schema):
         value: list[int]
