@@ -63,6 +63,9 @@ def schema(
         result.update({"items": schema(args[0])})
     if origin == tuple:
         result.update({"items": [schema(arg) for arg in args]})
+    print(origin)
+    if not isinstance(origin, type):
+        raise SyntaxError("A typing annotation has been written as Literal")
     if issubclass(origin, Schema):
         result.update(
             {
@@ -82,10 +85,5 @@ def schema(
             del extra["annotation"]
         except KeyError:
             pass
-        try:
-            return schema(origin.annotation, **extra)
-        except TypeError as e:
-            if isinstance(origin, str):
-                raise TypeError("madtypes expect types, not literals")
-            raise (e)
+        return schema(origin.annotation, **extra)
     return result

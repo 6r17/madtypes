@@ -5,4 +5,4 @@ venv:
 	env/bin/pip3 install -e .["dev"]
 
 test:
-	env/bin/pytest tests -vv
+	env/bin/pytest tests -vv --cov=madtypes --cov-report=term-missing

@@ -332,3 +332,11 @@ def test_schemas_are_reprable():
 
     e = Item(value="test")
     assert repr(e) == "{'value': 'test'}"
+
+
+def test_schemas_expect_types():
+    class Item(Schema):
+        value: "str"
+
+    with pytest.raises(SyntaxError):
+        schema(Item)
