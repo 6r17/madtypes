@@ -20,26 +20,26 @@ e.name = 2 # will raise ValueError
 ### json-schema
   
 ```python
-    from madtypes import schema, Schema
+from madtypes import schema, Schema
 
-    class Item(Schema):
-        name: str
+class Item(Schema):
+    name: str
 
-    class Basket(Schema):
-        items: list[Item]
+class Basket(Schema):
+    items: list[Item]
 
-    assert schema(Basket) == {
-        "type": "object",
-        "properties": {
+assert schema(Basket) == {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
             "items": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {"name": {"type": "string"}},
-                },
-            }
-        },
-    }
+                "type": "object",
+                "properties": {"name": {"type": "string"}},
+            },
+        }
+    },
+}
 ```
 
 ### Installation
