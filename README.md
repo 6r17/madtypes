@@ -1,5 +1,5 @@
 # madtypes
-- 💢 Python class typing that will tell you to <censored> at runtime
+- 💢 Python class typing that will tell you to *** at runtime
 - 📖 Render to dict or json
 - 🌐 [Json-Schema](https://json-schema.org/)
 
