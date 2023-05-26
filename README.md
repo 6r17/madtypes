@@ -15,6 +15,12 @@ e = Item()
 
 e.name = 2 # will raise ValueError
 
+Item(name="foo") # ok
+Item(name=2) # will raise valueError
+
+repr(Item(name="foo")) == {"name": "foo"}
+
+json.dumps(Item(name="foo")) => '{"name": "foo"}'
 ```
   
 ### json-schema
@@ -41,6 +47,8 @@ assert schema(Basket) == {
     },
 }
 ```
+
+[![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 
 ### Installation
 
