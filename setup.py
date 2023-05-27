@@ -14,6 +14,7 @@ setup(
     """,
     packages=find_packages(include=["madtypes"]),
     keywords="typing",
+    python_requires=">=3.9",
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
