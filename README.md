@@ -62,7 +62,7 @@ pip3 install madtypes
 
 - The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
 
-- Schema class and it's attributes inherit from `dict`. Each value is set directly in the dictionnary.
+- Schema class and it's attributes inherit from `dict`. Attributes are considered values of the dictionnary.
 
 - It renders natively to `JSON`, facilitating data serialization and interchange.
 
