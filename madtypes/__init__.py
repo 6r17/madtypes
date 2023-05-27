@@ -19,7 +19,7 @@ class Schema(dict):
         for key, value in self.__annotations__.items():
             if key in kwargs:
                 if isinstance(kwargs[key], value):
-                    self[key] = kwargs[key]
+                    super().__setitem__(key, kwargs[key])
                 else:
                     raise TypeError(
                         f"{kwargs[key]} is not an instance of {value}"
@@ -47,6 +47,14 @@ class Schema(dict):
         if not isinstance(value, annotation):
             raise TypeError(f"{value} is not an instance of {annotation}")
         self[name] = value
+
+
+class Immutable(Schema):
+    def __setattr__(self, __name__, __value__):
+        raise TypeError("'Immutable' object does not support item assignment")
+
+    def __setitem__(self, __key__, __value__):
+        raise TypeError("'Immutable' object does not support item assignment")
 
 
 def schema(

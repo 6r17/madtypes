@@ -1,4 +1,4 @@
-from madtypes import schema, Schema, Annotation
+from madtypes import schema, Schema, Annotation, Immutable
 import pytest
 
 
@@ -340,3 +340,15 @@ def test_schemas_expect_types():
 
     with pytest.raises(SyntaxError):
         schema(Item)
+
+
+def test_immutable():
+    class SomeImmutable(Immutable):
+        name: str
+
+    e = SomeImmutable(name="foo")
+    with pytest.raises(TypeError):
+        e.name = "bar"
+
+    with pytest.raises(TypeError):
+        e["name"] = "bar"
