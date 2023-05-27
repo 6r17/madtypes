@@ -1,4 +1,4 @@
-# madtypes
+madtypes - Enhanced Data Type Checking for Python
 - 💢 Python class typing that will raise TypeError at runtime
 - 📖 Render to dict or json
 - 🌐 [Json-Schema](https://json-schema.org/)
@@ -56,3 +56,17 @@ assert schema(Basket) == {
 ```bash
 pip3 install madtypes
 ```
+
+### Context
+`madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
+
+- The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
+
+- Schema class and it's attributes inherit from `dict`. Each value is set directly in the dictionnary.
+
+- It renders natively to `JSON`, facilitating data serialization and interchange.
+
+- The library also includes a `schema()` function that generates JSON-Schema representations based on class definitions.
+
+To use madtypes, install it with pip using pip3 install madtypes. The library requires Python 3.9 or later.
+
