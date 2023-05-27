@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'madtypes/__init__.py'
-      - 'tests/test_schema.py'
 
 jobs:
   build:
