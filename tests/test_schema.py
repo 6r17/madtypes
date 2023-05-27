@@ -1,3 +1,4 @@
+from typing import Optional
 from madtypes import schema, Schema, Annotation, Immutable
 import pytest
 
@@ -32,7 +33,7 @@ def test_attribute_access():
 
 
 def test_attribute_set():
-    a = Item()
+    a = Item(name="bar", gender=Gender(female=10, male=20))
     a.name = "foo"
     assert a.name == "foo"
     assert a["name"] == "foo"
@@ -58,13 +59,11 @@ def test_json_dumps_and_load():
 
 
 def test_set():
-    a = Item()
-    with pytest.raises(AttributeError):
-        a.gender.male = 20
-    a.gender = Gender()
-    a.gender.male = 20
-    print(a)
-    assert a.gender.male == 20
+    a = Item(name="bob", gender=Gender(male=20, female=30))
+    a.gender = Gender(male=30, female=10)
+    assert a.gender.male == 30
+    with pytest.raises(TypeError):
+        a.gender.male = "foo"
 
 
 def test_int():
@@ -304,9 +303,8 @@ def test_type_error():
     class Item(Schema):
         value: int
 
-    e = Item()
     with pytest.raises(TypeError):
-        e.value = "foo"
+        Item(value="foo")
 
 
 def test_instantiation_type_error():
@@ -321,9 +319,8 @@ def test_complex_type_error():
     class Item(Schema):
         value: list[int]
 
-    e = Item()
     with pytest.raises(TypeError):
-        e.value = ["str", "str"]
+        Item(value=["str", "str"])
 
 
 def test_schemas_are_reprable():
@@ -352,3 +349,33 @@ def test_immutable():
 
     with pytest.raises(TypeError):
         e["name"] = "bar"
+
+
+def test_copy():
+    class SomeImmutable(Immutable):
+        name: str
+        age: int
+
+    with pytest.raises(TypeError):
+        a = SomeImmutable(name="foo")  # missing age
+
+    class AnotherImmutable(Immutable):
+        name: str
+        age: Optional[int]
+
+    a = AnotherImmutable(name="foo")
+    b = AnotherImmutable(**a)
+    assert b.name == "foo"
+    c = SomeImmutable(age=2, **a)
+    assert c.name == "foo"
+    assert c.age == 2
+
+
+def test_custom_method():
+    class SomeClass(Schema):
+        name: str
+
+        def method(self) -> str:
+            return self.name
+
+    assert SomeClass(name="foo").method() == "foo"

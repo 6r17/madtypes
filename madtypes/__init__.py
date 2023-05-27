@@ -1,4 +1,5 @@
-from typing import get_args, get_origin, Union, Type
+from typing import get_args, get_origin, Union, Type, Optional
+import inspect
 
 TYPE_TO_STRING: dict[type, str] = {
     str: "string",
@@ -14,6 +15,12 @@ class Annotation:
     description: str
 
 
+def is_optional_type(annotation):
+    return getattr(annotation, "__origin__", None) is Union and type(
+        None
+    ) in getattr(annotation, "__args__", ())
+
+
 class Schema(dict):
     def __init__(self, **kwargs):
         for key, value in self.__annotations__.items():
@@ -24,6 +31,10 @@ class Schema(dict):
                     raise TypeError(
                         f"{kwargs[key]} is not an instance of {value}"
                     )
+            else:
+                optional = is_optional_type(value)
+                if not optional:
+                    raise TypeError(f"{key} is a mandatory field")
 
     @classmethod
     def get_fields(cls):
@@ -32,7 +43,8 @@ class Schema(dict):
     def __getattr__(self, name):
         if name in self:
             return self[name]
-        return super().__getattribute__(name)
+        # I don't know how to trigger the next line, it's more of an `in-case'
+        return super().__getattribute__(name)  # pragma: no cover
 
     def __setattr__(self, name, value):
         annotation = self.__annotations__[name]
@@ -72,26 +84,28 @@ def schema(
     if origin == tuple:
         result.update({"items": [schema(arg) for arg in args]})
     print(origin)
-    if not isinstance(origin, type):
+    if not isinstance(origin, type) and not is_optional_type(annotation):
         raise SyntaxError("A typing annotation has been written as Literal")
-    if issubclass(origin, Schema):
-        result.update(
-            {
-                "type": "object",
-                "properties": {
-                    name: schema(field) for name, field in origin.get_fields()
-                },
+    if inspect.isclass(origin):
+        if issubclass(origin, Schema):
+            result.update(
+                {
+                    "type": "object",
+                    "properties": {
+                        name: schema(field)
+                        for name, field in origin.get_fields()
+                    },
+                }
+            )
+        if issubclass(origin, Annotation):
+            extra = {
+                key: value
+                for key, value in origin.__dict__.items()
+                if not callable(value) and not key.startswith("__")
             }
-        )
-    if issubclass(origin, Annotation):
-        extra = {
-            key: value
-            for key, value in origin.__dict__.items()
-            if not callable(value) and not key.startswith("__")
-        }
-        try:
-            del extra["annotation"]
-        except KeyError:
-            pass
-        return schema(origin.annotation, **extra)
+            try:
+                del extra["annotation"]
+            except KeyError:
+                pass
+            return schema(origin.annotation, **extra)
     return result
