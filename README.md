@@ -67,6 +67,3 @@ pip3 install madtypes
 - It renders natively to `JSON`, facilitating data serialization and interchange.
 
 - The library also includes a `schema()` function that generates JSON-Schema representations based on class definitions.
-
-To use madtypes, install it with pip using pip3 install madtypes. The library requires Python 3.9 or later.
-
