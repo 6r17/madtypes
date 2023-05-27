@@ -13,10 +13,10 @@ class Item(Schema)
 
 e = Item()
 
-e.name = 2 # will raise ValueError
+e.name = 2 # will raise TypeError
 
 Item(name="foo") # ok
-Item(name=2) # will raise valueError
+Item(name=2) # will raise TypeError
 
 repr(Item(name="foo")) == {"name": "foo"}
 
