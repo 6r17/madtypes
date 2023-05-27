@@ -49,7 +49,7 @@ assert schema(Basket) == {
 ```
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
-
+[![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
 ### Installation
 
 ```bash
