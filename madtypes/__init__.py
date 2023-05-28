@@ -1,4 +1,4 @@
-from typing import get_args, get_origin, Union, Type, Optional
+from typing import get_args, get_origin, Union, Type
 import inspect
 
 TYPE_TO_STRING: dict[type, str] = {
@@ -19,6 +19,10 @@ def is_optional_type(annotation):
     return getattr(annotation, "__origin__", None) is Union and type(
         None
     ) in getattr(annotation, "__args__", ())
+
+
+def remove_optional(typing_annotation):
+    return get_args(typing_annotation)[0]
 
 
 class Schema(dict):
@@ -62,7 +66,11 @@ class Schema(dict):
 
     @classmethod
     def required_fields(cls) -> list[str]:
-        return [name for name, __field__ in cls.__annotations__.items()]
+        return [
+            name
+            for name, field in cls.__annotations__.items()
+            if not is_optional_type(field)
+        ]
 
 
 class Immutable(Schema):
@@ -87,7 +95,6 @@ def schema(
         result.update({"items": schema(args[0])})
     if origin == tuple:
         result.update({"items": [schema(arg) for arg in args]})
-    print(origin)
     if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
     if inspect.isclass(origin):
@@ -99,9 +106,11 @@ def schema(
                         name: schema(field)
                         for name, field in origin.get_fields()
                     },
-                    "required": origin.required_fields(),
                 }
             )
+            required = origin.required_fields()
+            if len(required) > 0:
+                result.update({"required": required})
         if issubclass(origin, Annotation):
             extra = {
                 key: value
@@ -113,4 +122,6 @@ def schema(
             except KeyError:
                 pass
             return schema(origin.annotation, **extra)
+    if is_optional_type(annotation):
+        return schema(remove_optional(annotation))
     return result

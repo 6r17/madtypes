@@ -399,3 +399,29 @@ def test_custom_method():
             return self.name
 
     assert SomeClass(name="foo").method() == "foo"
+
+
+def test_optional_json_schema():
+    class SomeClassWithOptional(Schema):
+        name: Optional[str]
+
+    SomeClassWithOptional()
+    schem = schema(SomeClassWithOptional)
+    assert schem == {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+    }
+
+
+def test_optional_json_schema_with_array():
+    class SomeClassWithOptional(Schema):
+        elements: Optional[list[int]]
+
+    SomeClassWithOptional()
+    schem = schema(SomeClassWithOptional)
+    assert schem == {
+        "type": "object",
+        "properties": {
+            "elements": {"type": "array", "items": {"type": "integer"}}
+        },
+    }
