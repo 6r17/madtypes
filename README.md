@@ -13,10 +13,10 @@ class Item(Schema)
 
 e = Item()
 
-e.name = 2 # will raise ValueError
+e.name = 2 # will raise TypeError
 
 Item(name="foo") # ok
-Item(name=2) # will raise valueError
+Item(name=2) # will raise TypeError
 
 repr(Item(name="foo")) == {"name": "foo"}
 
@@ -50,9 +50,20 @@ assert schema(Basket) == {
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
-![](https://img.shields.io/pypi/pyversions/madtypes)
+![python: >3.9](https://img.shields.io/badge/python-%3E3.9-informational)
 ### Installation
 
 ```bash
 pip3 install madtypes
 ```
+
+### Context
+`madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
+
+- The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
+
+- Schema class and it's attributes inherit from `dict`. Attributes are considered values of the dictionnary.
+
+- It renders natively to `JSON`, facilitating data serialization and interchange.
+
+- The library also includes a `schema()` function that generates JSON-Schema representations based on class definitions.
