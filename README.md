@@ -11,25 +11,46 @@ from madtypes import Schema
 class Item(Schema)
     name: str
 
-e = Item()
-
-e.name = 2 # will raise ValueError
-
+Item() # raise TypeError, name is missing
+Item(name=2) # raise TypeError, 2 is not an str
 Item(name="foo") # ok
-Item(name=2) # will raise valueError
-
 repr(Item(name="foo")) == {"name": "foo"}
-
 json.dumps(Item(name="foo")) => '{"name": "foo"}'
+
+from typing import Optional
+class ItemWithOptional(Schema):
+    name: Optional[str]
+
+ItemWithOptional() # ok
+```
+
+### Immutables
+
+```
+from madtypes import Immutable # Immutable inherits from Schema
+
+class Foo(Immutable):
+    name: str
+    age: Optional[int]
+
+e = Foo(name="foo")
+
+e.name = "bar" # raise TypeError
+
+
+b = Foo(**e) # intianciate a new copy
+b = Foo(age=2, **e) # create a copy with changes
+
 ```
   
 ### json-schema
   
 ```python
 from madtypes import schema, Schema
+from typing import Optional
 
 class Item(Schema):
-    name: str
+    name: Optional[str]
 
 class Basket(Schema):
     items: list[Item]
@@ -45,14 +66,27 @@ assert schema(Basket) == {
             },
         }
     },
+    "required": ["items"]
 }
 ```
 
+
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
-![](https://img.shields.io/pypi/pyversions/madtypes)
+![python: >3.9](https://img.shields.io/badge/python-%3E3.9-informational)
 ### Installation
 
 ```bash
 pip3 install madtypes
 ```
+
+### Context
+`madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
+
+- The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
+
+- Schema class and it's attributes inherit from `dict`. Attributes are considered values of the dictionnary.
+
+- It renders natively to `JSON`, facilitating data serialization and interchange.
+
+- The library also includes a `schema()` function that generates JSON-Schema representations based on class definitions.
