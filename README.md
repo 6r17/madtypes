@@ -14,6 +14,7 @@ class Item(Schema)
 Item() # raise TypeError, name is missing
 Item(name=2) # raise TypeError, 2 is not an str
 Item(name="foo") # ok
+
 repr(Item(name="foo")) == {"name": "foo"}
 json.dumps(Item(name="foo")) => '{"name": "foo"}'
 
@@ -26,7 +27,7 @@ ItemWithOptional() # ok
 
 ### Immutables
 
-```
+```python
 from madtypes import Immutable # Immutable inherits from Schema
 
 class Foo(Immutable):
