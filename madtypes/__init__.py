@@ -1,4 +1,5 @@
 from typing import get_args, get_origin, Union, Type
+import inspect
 
 TYPE_TO_STRING: dict[type, str] = {
     str: "string",
@@ -14,16 +15,30 @@ class Annotation:
     description: str
 
 
+def is_optional_type(annotation):
+    return getattr(annotation, "__origin__", None) is Union and type(
+        None
+    ) in getattr(annotation, "__args__", ())
+
+
+def remove_optional(typing_annotation):
+    return get_args(typing_annotation)[0]
+
+
 class Schema(dict):
     def __init__(self, **kwargs):
         for key, value in self.__annotations__.items():
             if key in kwargs:
                 if isinstance(kwargs[key], value):
-                    self[key] = kwargs[key]
+                    super().__setitem__(key, kwargs[key])
                 else:
                     raise TypeError(
                         f"{kwargs[key]} is not an instance of {value}"
                     )
+            else:
+                optional = is_optional_type(value)
+                if not optional:
+                    raise TypeError(f"{key} is a mandatory field")
 
     @classmethod
     def get_fields(cls):
@@ -32,7 +47,8 @@ class Schema(dict):
     def __getattr__(self, name):
         if name in self:
             return self[name]
-        return super().__getattribute__(name)
+        # I don't know how to trigger the next line, it's more of an `in-case'
+        return super().__getattribute__(name)  # pragma: no cover
 
     def __setattr__(self, name, value):
         annotation = self.__annotations__[name]
@@ -47,6 +63,22 @@ class Schema(dict):
         if not isinstance(value, annotation):
             raise TypeError(f"{value} is not an instance of {annotation}")
         self[name] = value
+
+    @classmethod
+    def required_fields(cls) -> list[str]:
+        return [
+            name
+            for name, field in cls.__annotations__.items()
+            if not is_optional_type(field)
+        ]
+
+
+class Immutable(Schema):
+    def __setattr__(self, __name__, __value__):
+        raise TypeError("'Immutable' object does not support item assignment")
+
+    def __setitem__(self, __key__, __value__):
+        raise TypeError("'Immutable' object does not support item assignment")
 
 
 def schema(
@@ -63,27 +95,33 @@ def schema(
         result.update({"items": schema(args[0])})
     if origin == tuple:
         result.update({"items": [schema(arg) for arg in args]})
-    print(origin)
-    if not isinstance(origin, type):
+    if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
-    if issubclass(origin, Schema):
-        result.update(
-            {
-                "type": "object",
-                "properties": {
-                    name: schema(field) for name, field in origin.get_fields()
-                },
+    if inspect.isclass(origin):
+        if issubclass(origin, Schema):
+            result.update(
+                {
+                    "type": "object",
+                    "properties": {
+                        name: schema(field)
+                        for name, field in origin.get_fields()
+                    },
+                }
+            )
+            required = origin.required_fields()
+            if len(required) > 0:
+                result.update({"required": required})
+        if issubclass(origin, Annotation):
+            extra = {
+                key: value
+                for key, value in origin.__dict__.items()
+                if not callable(value) and not key.startswith("__")
             }
-        )
-    if issubclass(origin, Annotation):
-        extra = {
-            key: value
-            for key, value in origin.__dict__.items()
-            if not callable(value) and not key.startswith("__")
-        }
-        try:
-            del extra["annotation"]
-        except KeyError:
-            pass
-        return schema(origin.annotation, **extra)
+            try:
+                del extra["annotation"]
+            except KeyError:
+                pass
+            return schema(origin.annotation, **extra)
+    if is_optional_type(annotation):
+        return schema(remove_optional(annotation))
     return result

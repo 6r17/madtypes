@@ -1,4 +1,5 @@
-from madtypes import schema, Schema, Annotation
+from typing import Optional
+from madtypes import schema, Schema, Annotation, Immutable
 import pytest
 
 
@@ -32,7 +33,7 @@ def test_attribute_access():
 
 
 def test_attribute_set():
-    a = Item()
+    a = Item(name="bar", gender=Gender(female=10, male=20))
     a.name = "foo"
     assert a.name == "foo"
     assert a["name"] == "foo"
@@ -58,13 +59,11 @@ def test_json_dumps_and_load():
 
 
 def test_set():
-    a = Item()
-    with pytest.raises(AttributeError):
-        a.gender.male = 20
-    a.gender = Gender()
-    a.gender.male = 20
-    print(a)
-    assert a.gender.male == 20
+    a = Item(name="bob", gender=Gender(male=20, female=30))
+    a.gender = Gender(male=30, female=10)
+    assert a.gender.male == 30
+    with pytest.raises(TypeError):
+        a.gender.male = "foo"
 
 
 def test_int():
@@ -89,6 +88,7 @@ def test_object():
     assert schema(Item) == {
         "type": "object",
         "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
 
 
@@ -99,7 +99,9 @@ def test_array_of_object():
     class Basket(Schema):
         items: list[Item]
 
-    assert schema(Basket) == {
+    schem = schema(Basket)
+    print(schem)
+    assert schem == {
         "type": "object",
         "properties": {
             "items": {
@@ -107,9 +109,11 @@ def test_array_of_object():
                 "items": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
                 },
             }
         },
+        "required": ["items"],
     }
 
 
@@ -120,7 +124,9 @@ def test_tuple_of_object():
     class Basket(Schema):
         some_items: tuple[Item, Item]
 
-    assert schema(Basket) == {
+    schem = schema(Basket)
+    print(schem)
+    assert schem == {
         "type": "object",
         "properties": {
             "some_items": {
@@ -129,14 +135,17 @@ def test_tuple_of_object():
                     {
                         "type": "object",
                         "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
                     },
                     {
                         "type": "object",
                         "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
                     },
                 ],
             }
         },
+        "required": ["some_items"],
     }
 
 
@@ -152,8 +161,10 @@ def test_json_schema():
                     "female": {"type": "integer"},
                     "male": {"type": "integer"},
                 },
+                "required": ["female", "male"],
             },
         },
+        "required": ["name", "gender"],
     }
 
 
@@ -176,6 +187,7 @@ def test_descripted_json_schema():
                 "description": "Some description",
             },
         },
+        "required": ["descripted"],
     }
 
 
@@ -189,6 +201,7 @@ def test_annotation_array():
         "properties": {
             "items": {"type": "array", "items": {"type": "string"}}
         },
+        "required": ["items"],
     }
 
 
@@ -213,6 +226,7 @@ def test_descriptive_primitive_array():
                 "description": "some description",
             },
         },
+        "required": ["descripted_array"],
     }
 
 
@@ -235,9 +249,11 @@ def test_object_array():
                 "items": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
                 },
             }
         },
+        "required": ["persons"],
     }
 
 
@@ -266,19 +282,21 @@ def test_descriptive_object_array():
         "type": "object",
         "properties": {
             "descripted_array": {
+                "description": "Lots of beers",
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
                         "name": {
-                            "type": "string",
                             "description": "How you'd call the beer",
+                            "type": "string",
                         }
                     },
+                    "required": ["name"],
                 },
-                "description": "Lots of beers",
-            },
+            }
         },
+        "required": ["descripted_array"],
     }
 
 
@@ -297,6 +315,7 @@ def test_annotation_tuple_schema():
                 "items": [{"type": "integer"}, {"type": "string"}],
             }
         },
+        "required": ["tupled"],
     }
 
 
@@ -304,9 +323,8 @@ def test_type_error():
     class Item(Schema):
         value: int
 
-    e = Item()
     with pytest.raises(TypeError):
-        e.value = "foo"
+        Item(value="foo")
 
 
 def test_instantiation_type_error():
@@ -321,9 +339,8 @@ def test_complex_type_error():
     class Item(Schema):
         value: list[int]
 
-    e = Item()
     with pytest.raises(TypeError):
-        e.value = ["str", "str"]
+        Item(value=["str", "str"])
 
 
 def test_schemas_are_reprable():
@@ -340,3 +357,71 @@ def test_schemas_expect_types():
 
     with pytest.raises(SyntaxError):
         schema(Item)
+
+
+def test_immutable():
+    class SomeImmutable(Immutable):
+        name: str
+
+    e = SomeImmutable(name="foo")
+    with pytest.raises(TypeError):
+        e.name = "bar"
+
+    with pytest.raises(TypeError):
+        e["name"] = "bar"
+
+
+def test_copy():
+    class SomeImmutable(Immutable):
+        name: str
+        age: int
+
+    with pytest.raises(TypeError):
+        a = SomeImmutable(name="foo")  # missing age
+
+    class AnotherImmutable(Immutable):
+        name: str
+        age: Optional[int]
+
+    a = AnotherImmutable(name="foo")
+    b = AnotherImmutable(**a)
+    assert b.name == "foo"
+    c = SomeImmutable(age=2, **a)
+    assert c.name == "foo"
+    assert c.age == 2
+
+
+def test_custom_method():
+    class SomeClass(Schema):
+        name: str
+
+        def method(self) -> str:
+            return self.name
+
+    assert SomeClass(name="foo").method() == "foo"
+
+
+def test_optional_json_schema():
+    class SomeClassWithOptional(Schema):
+        name: Optional[str]
+
+    SomeClassWithOptional()
+    schem = schema(SomeClassWithOptional)
+    assert schem == {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+    }
+
+
+def test_optional_json_schema_with_array():
+    class SomeClassWithOptional(Schema):
+        elements: Optional[list[int]]
+
+    SomeClassWithOptional()
+    schem = schema(SomeClassWithOptional)
+    assert schem == {
+        "type": "object",
+        "properties": {
+            "elements": {"type": "array", "items": {"type": "integer"}}
+        },
+    }

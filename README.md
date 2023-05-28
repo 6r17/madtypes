@@ -1,5 +1,5 @@
-madtypes - Enhanced Data Type Checking for Python
-- 💢 Python class typing that will raise TypeError at runtime
+# madtypes
+- 💢 Python class typing that raise TypeError at runtime
 - 📖 Render to dict or json
 - 🌐 [Json-Schema](https://json-schema.org/)
 
@@ -11,25 +11,47 @@ from madtypes import Schema
 class Item(Schema)
     name: str
 
-e = Item()
-
-e.name = 2 # will raise TypeError
-
+Item() # raise TypeError, name is missing
+Item(name=2) # raise TypeError, 2 is not an str
 Item(name="foo") # ok
-Item(name=2) # will raise TypeError
 
 repr(Item(name="foo")) == {"name": "foo"}
-
 json.dumps(Item(name="foo")) => '{"name": "foo"}'
+
+from typing import Optional
+class ItemWithOptional(Schema):
+    name: Optional[str]
+
+ItemWithOptional() # ok
+```
+
+### Immutables
+
+```python
+from madtypes import Immutable # Immutable inherits from Schema
+
+class Foo(Immutable):
+    name: str
+    age: Optional[int]
+
+e = Foo(name="foo")
+
+e.name = "bar" # raise TypeError
+
+
+b = Foo(**e) # intianciate a new copy
+b = Foo(age=2, **e) # create a copy with changes
+
 ```
   
 ### json-schema
   
 ```python
 from madtypes import schema, Schema
+from typing import Optional
 
 class Item(Schema):
-    name: str
+    name: Optional[str]
 
 class Basket(Schema):
     items: list[Item]
@@ -45,8 +67,10 @@ assert schema(Basket) == {
             },
         }
     },
+    "required": ["items"]
 }
 ```
+
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
