@@ -1,5 +1,5 @@
 # madtypes
-- 💢 Python class typing that will raise TypeError at runtime
+- 💢 Python class typing that raise TypeError at runtime
 - 📖 Render to dict or json
 - 🌐 [Json-Schema](https://json-schema.org/)
 

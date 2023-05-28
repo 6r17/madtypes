@@ -5,10 +5,10 @@ with open("README.md", "r") as f:
 
 setup(
     name="madtypes",
-    version="0.0.2",
+    version="0.0.3",
     author="6r17",
     author_email="patrick.borowy@proton.me",
-    description="Python typing that will raise TypeError at runtime",
+    description="Python typing that raise TypeError at runtime",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/6r17/madtypes",
