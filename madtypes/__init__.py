@@ -60,6 +60,10 @@ class Schema(dict):
             raise TypeError(f"{value} is not an instance of {annotation}")
         self[name] = value
 
+    @classmethod
+    def required_fields(cls) -> list[str]:
+        return [name for name, __field__ in cls.__annotations__.items()]
+
 
 class Immutable(Schema):
     def __setattr__(self, __name__, __value__):
@@ -84,7 +88,7 @@ def schema(
     if origin == tuple:
         result.update({"items": [schema(arg) for arg in args]})
     print(origin)
-    if not isinstance(origin, type) and not is_optional_type(annotation):
+    if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
     if inspect.isclass(origin):
         if issubclass(origin, Schema):
@@ -95,6 +99,7 @@ def schema(
                         name: schema(field)
                         for name, field in origin.get_fields()
                     },
+                    "required": origin.required_fields(),
                 }
             )
         if issubclass(origin, Annotation):

@@ -88,6 +88,7 @@ def test_object():
     assert schema(Item) == {
         "type": "object",
         "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
 
 
@@ -98,7 +99,9 @@ def test_array_of_object():
     class Basket(Schema):
         items: list[Item]
 
-    assert schema(Basket) == {
+    schem = schema(Basket)
+    print(schem)
+    assert schem == {
         "type": "object",
         "properties": {
             "items": {
@@ -106,9 +109,11 @@ def test_array_of_object():
                 "items": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
                 },
             }
         },
+        "required": ["items"],
     }
 
 
@@ -119,7 +124,9 @@ def test_tuple_of_object():
     class Basket(Schema):
         some_items: tuple[Item, Item]
 
-    assert schema(Basket) == {
+    schem = schema(Basket)
+    print(schem)
+    assert schem == {
         "type": "object",
         "properties": {
             "some_items": {
@@ -128,14 +135,17 @@ def test_tuple_of_object():
                     {
                         "type": "object",
                         "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
                     },
                     {
                         "type": "object",
                         "properties": {"name": {"type": "string"}},
+                        "required": ["name"],
                     },
                 ],
             }
         },
+        "required": ["some_items"],
     }
 
 
@@ -151,8 +161,10 @@ def test_json_schema():
                     "female": {"type": "integer"},
                     "male": {"type": "integer"},
                 },
+                "required": ["female", "male"],
             },
         },
+        "required": ["name", "gender"],
     }
 
 
@@ -175,6 +187,7 @@ def test_descripted_json_schema():
                 "description": "Some description",
             },
         },
+        "required": ["descripted"],
     }
 
 
@@ -188,6 +201,7 @@ def test_annotation_array():
         "properties": {
             "items": {"type": "array", "items": {"type": "string"}}
         },
+        "required": ["items"],
     }
 
 
@@ -212,6 +226,7 @@ def test_descriptive_primitive_array():
                 "description": "some description",
             },
         },
+        "required": ["descripted_array"],
     }
 
 
@@ -234,9 +249,11 @@ def test_object_array():
                 "items": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
                 },
             }
         },
+        "required": ["persons"],
     }
 
 
@@ -265,19 +282,21 @@ def test_descriptive_object_array():
         "type": "object",
         "properties": {
             "descripted_array": {
+                "description": "Lots of beers",
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
                         "name": {
-                            "type": "string",
                             "description": "How you'd call the beer",
+                            "type": "string",
                         }
                     },
+                    "required": ["name"],
                 },
-                "description": "Lots of beers",
-            },
+            }
         },
+        "required": ["descripted_array"],
     }
 
 
@@ -296,6 +315,7 @@ def test_annotation_tuple_schema():
                 "items": [{"type": "integer"}, {"type": "string"}],
             }
         },
+        "required": ["tupled"],
     }
 
 
