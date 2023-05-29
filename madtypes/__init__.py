@@ -1,4 +1,4 @@
-from typing import get_args, get_origin, Union, Type
+from typing import get_args, get_origin, Union, Type, get_type_hints
 import inspect
 
 TYPE_TO_STRING: dict[type, str] = {
@@ -10,9 +10,46 @@ TYPE_TO_STRING: dict[type, str] = {
 }
 
 
-class Annotation:
-    annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]]
-    description: str
+def is_value_compatible_with_annotation(value, annotation):
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    if origin is None:
+        # Non-generic type
+        return isinstance(value, annotation)
+    elif origin is list:
+        # List annotation
+        if isinstance(value, list):
+            if args:
+                # Parametrized list annotation
+                inner_annotation = args[0]
+                return all(
+                    is_value_compatible_with_annotation(item, inner_annotation)
+                    for item in value
+                )
+
+
+class Annotation(type):
+    def __new__(cls, name, bases, attrs):
+        # Retrieve the annotation from the class attributes
+        annotation = attrs.get("annotation")
+
+        # Override the __new__ method of the list class
+        def new_method(cls, values):
+            print(cls, values, annotation)
+            # Check the type of each value before initializing the list
+            if not is_value_compatible_with_annotation(values, annotation):
+                raise TypeError(
+                    f"All values must be compatible with the annotation '{annotation}'"
+                )
+
+            # Create the list instance and initialize it with the values
+            instance = super(cls, cls).__new__(cls, values)
+            return instance
+
+        # Assign the overridden __new__ method to the class
+        attrs["__new__"] = new_method
+        return super().__new__(cls, name, bases, attrs)
 
 
 def is_optional_type(annotation):
@@ -52,14 +89,7 @@ class Schema(dict):
 
     def __setattr__(self, name, value):
         annotation = self.__annotations__[name]
-        annotation = (
-            annotation.annotation
-            if isinstance(
-                annotation,
-                Annotation,
-            )
-            else annotation
-        )
+
         if not isinstance(value, annotation):
             raise TypeError(f"{value} is not an instance of {annotation}")
         self[name] = value
