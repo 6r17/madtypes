@@ -443,6 +443,19 @@ def test_descripted_list_value_set():
         a.append("foo")
 
 
+def test_descripted_list_object_value_set():
+    class Foo(Schema):
+        name: str
+
+    class DescriptedFoo(Foo, metaclass=Annotation):
+        description = "description"
+        annotation = Foo
+
+    DescriptedFoo(name="foo")
+    with pytest.raises(TypeError):
+        DescriptedFoo(name=2)
+
+
 def test_descripted_json_schema():
     class DescriptedString(str, metaclass=Annotation):
         description = "Some description"

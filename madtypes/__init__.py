@@ -35,15 +35,16 @@ class Annotation(type):
         annotation = attrs.get("annotation")
 
         # Override the __new__ method of the list class
-        def new_method(cls, values):
+        def new_method(cls, *values, **kwargs):
             # Check the type of each value before initializing the list
-            if not is_value_compatible_with_annotation(values, annotation):
-                raise TypeError(
-                    f"All values must be compatible with the annotation '{annotation}'"
-                )
+            for value in values:
+                if not is_value_compatible_with_annotation(value, annotation):
+                    raise TypeError(
+                        f"All values must be compatible with the annotation '{annotation}'"
+                    )
 
             # Create the list instance and initialize it with the values
-            instance = super(cls, cls).__new__(cls, values)
+            instance = super(cls, cls).__new__(cls, *values, **kwargs)
             return instance
 
         # Assign the overridden __new__ method to the class
