@@ -1,7 +1,11 @@
 name: Test
 
 on:
-  push
+  push:
+    branches: '**'
+    paths:
+      - 'madtypes/__init__.py'
+      - 'tests/test_schema.py'
 
 jobs:
   build:
