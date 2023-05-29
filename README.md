@@ -74,16 +74,16 @@ assert schema(Basket) == {
 ### 🔥 Annotation attributes
 It is possible to use the `Annotation` metaclass to add type-check to a class definition.
 
-```
+```python
 class SomeStringAttribute(str, metaclass=Annotation):
-   ...
+   pass
 
 SomeDescriptedAttribute(2) # raise type error
 ```
 
 It is possible to use this to further describe a field.
 
-```
+```python
 class SomeDescriptedAttribute(str, metaclass=Annotation):
     annotation = str
     description = "Some description"
@@ -91,7 +91,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
 
 Now when we use `schema` on `SomeDescription` to generate the json-schema, it will use include the description attribute
 
-```
+```python
 class DescriptedString(str, metaclass=Annotation):
     description = "Some description"
     annotation = str
