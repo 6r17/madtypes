@@ -2,8 +2,10 @@ name: Test
 
 on:
   push:
-    branches:
-      - main
+    branches: '**'
+    paths:
+      - 'madtypes/__init__.py'
+      - 'tests/test_schema.py'
 
 jobs:
   build:

@@ -1,6 +1,7 @@
 from typing import Optional
 from madtypes import schema, Schema, Annotation, Immutable
 import pytest
+import json
 
 
 class Gender(Schema):
@@ -66,22 +67,22 @@ def test_set():
         a.gender.male = "foo"
 
 
-def test_int():
+def test_int_schema():
     assert schema(int) == {"type": "integer"}
 
 
-def test_array():
+def test_array_schema():
     assert schema(list[int]) == {"type": "array", "items": {"type": "integer"}}
 
 
-def test_tuple():
+def test_tuple_schema():
     assert schema(tuple[int, int]) == {
         "type": "array",
         "items": [{"type": "integer"}, {"type": "integer"}],
     }
 
 
-def test_object():
+def test_object_schema():
     class Item(Schema):
         name: str
 
@@ -92,7 +93,7 @@ def test_object():
     }
 
 
-def test_array_of_object():
+def test_array_of_object_schema():
     class Item(Schema):
         name: str
 
@@ -117,7 +118,7 @@ def test_array_of_object():
     }
 
 
-def test_tuple_of_object():
+def test_tuple_of_object_schema():
     class Item(Schema):
         name: str
 
@@ -149,7 +150,7 @@ def test_tuple_of_object():
     }
 
 
-def test_json_schema():
+def test_object_with_object_schema():
     print(schema(Item))
     assert schema(Item) == {
         "type": "object",
@@ -165,29 +166,6 @@ def test_json_schema():
             },
         },
         "required": ["name", "gender"],
-    }
-
-
-class DescriptedString(Annotation):
-    description = "Some description"
-    annotation = str
-
-
-class DescriptedItem(Schema):
-    descripted: DescriptedString
-
-
-def test_descripted_json_schema():
-    print(schema(DescriptedItem))
-    assert schema(DescriptedItem) == {
-        "type": "object",
-        "properties": {
-            "descripted": {
-                "type": "string",
-                "description": "Some description",
-            },
-        },
-        "required": ["descripted"],
     }
 
 
@@ -424,4 +402,76 @@ def test_optional_json_schema_with_array():
         "properties": {
             "elements": {"type": "array", "items": {"type": "integer"}}
         },
+    }
+
+
+def test_descripted_value_set():
+    class SomeDescriptedField(str, metaclass=Annotation):
+        description = "foo"
+        annotation = str
+
+    class SomeItem(Schema):
+        name: SomeDescriptedField
+
+    with pytest.raises(TypeError):
+        SomeDescriptedField(2)
+    a = SomeItem(name=SomeDescriptedField("foo"))
+    assert a.name == "foo"
+    a.name = SomeDescriptedField("bar")
+    assert a == {"name": "bar"}
+    assert json.dumps(a) == '{"name": "bar"}'
+    assert a.name.description == "foo"
+
+
+def test_descripted_list_value_set():
+    class SomeDescriptedListField(list, metaclass=Annotation):
+        description = "foo"
+        annotation = list[str]
+
+    class SomeListItem(Schema):
+        names: SomeDescriptedListField
+
+    values = SomeDescriptedListField(["1", "2", "3"])
+    print(values)
+    assert values == ["1", "2", "3"]
+    with pytest.raises(TypeError):
+        SomeListItem(names=SomeDescriptedListField([1]))
+    a = SomeListItem(names=SomeDescriptedListField(["1", "2", "3"]))
+    assert len(a.names) == 3
+    assert json.dumps(a) == '{"names": ["1", "2", "3"]}'
+    with pytest.raises(AttributeError):  # append does not exist
+        a.append("foo")
+
+
+def test_descripted_list_object_value_set():
+    class Foo(Schema):
+        name: str
+
+    class DescriptedFoo(Foo, metaclass=Annotation):
+        description = "description"
+        annotation = Foo
+
+    DescriptedFoo(name="foo")
+    with pytest.raises(TypeError):
+        DescriptedFoo(name=2)
+
+
+def test_descripted_json_schema():
+    class DescriptedString(str, metaclass=Annotation):
+        description = "Some description"
+        annotation = str
+
+    class DescriptedItem(Schema):
+        descripted: DescriptedString
+
+    print(schema(DescriptedItem))
+    assert schema(DescriptedItem) == {
+        "type": "object",
+        "properties": {
+            "descripted": {
+                "type": "string",
+                "description": "Some description",
+            },
+        },
+        "required": ["descripted"],
     }
