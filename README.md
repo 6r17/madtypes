@@ -89,7 +89,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
     description = "Some description"
 ```
 
-Now when we use `schema` on `SomeDescription` to generate the json-schema, it will use include the description attribute
+Now when we use `schema` on `SomeDescription` to generate the json-schema, it will include the description attribute
 
 ```python
 class DescriptedString(str, metaclass=Annotation):
