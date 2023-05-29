@@ -1,4 +1,4 @@
-from typing import get_args, get_origin, Union, Type, get_type_hints
+from typing import get_args, get_origin, Union, Type
 import inspect
 
 TYPE_TO_STRING: dict[type, str] = {
@@ -36,7 +36,6 @@ class Annotation(type):
 
         # Override the __new__ method of the list class
         def new_method(cls, values):
-            print(cls, values, annotation)
             # Check the type of each value before initializing the list
             if not is_value_compatible_with_annotation(values, annotation):
                 raise TypeError(
@@ -141,16 +140,12 @@ def schema(
             required = origin.required_fields()
             if len(required) > 0:
                 result.update({"required": required})
-        if issubclass(origin, Annotation):
+        if getattr(origin, "annotation", False):
             extra = {
                 key: value
                 for key, value in origin.__dict__.items()
                 if not callable(value) and not key.startswith("__")
             }
-            try:
-                del extra["annotation"]
-            except KeyError:
-                pass
             return schema(origin.annotation, **extra)
     if is_optional_type(annotation):
         return schema(remove_optional(annotation))

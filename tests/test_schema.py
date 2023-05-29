@@ -439,11 +439,14 @@ def test_descripted_list_value_set():
     a = SomeListItem(names=SomeDescriptedListField(["1", "2", "3"]))
     assert len(a.names) == 3
     assert json.dumps(a) == '{"names": ["1", "2", "3"]}'
+    with pytest.raises(AttributeError):  # append does not exist
+        a.append("foo")
 
 
-def notest_descripted_json_schema():
-    class DescriptedString(str, Annotation):
+def test_descripted_json_schema():
+    class DescriptedString(str, metaclass=Annotation):
         description = "Some description"
+        annotation = str
 
     class DescriptedItem(Schema):
         descripted: DescriptedString
