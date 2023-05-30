@@ -98,7 +98,7 @@ def test_enum():
 ```
 
 - ### 🔥 Annotation attributes
-It is possible to use the `Annotation` metaclass to add type-check to a class definition.
+It is possible to use the `Annotation` metaclass customize a type.
 
 ```python
 class SomeStringAttribute(str, metaclass=Annotation):
