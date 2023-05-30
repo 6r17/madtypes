@@ -256,7 +256,7 @@ class ObjectDescriptedArray(Schema):
     descripted_array: ObjectDescriptiveArray
 
 
-def test_descriptive_object_array():
+def test_descriptive_object_array_json_schema():
     result = json_schema(ObjectDescriptedArray)
     print(result)
     assert result == {
@@ -524,3 +524,53 @@ def test_type_check_set_of_primitive():
 def test_type_check_optional_primitive():
     assert type_check(1, Optional[int])
     assert type_check("foo", Optional[int]) == False
+
+
+def test_pattern_definition_with_incorect_type():
+    class PhoneNumber(int, metaclass=Annotation):
+        annotation = int
+        pattern = r"\b\d{3}-\d{3}-\d{4}\b"
+
+    with pytest.raises(SyntaxError):
+        PhoneNumber(2)
+
+
+def test_pattern_definition():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    PhoneNumber("000-000-0000")
+
+
+def test_pattern_raise_type_error():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    with pytest.raises(TypeError):
+        PhoneNumber("oops")
+
+
+def test_pattern_is_rendered_in_json_schema():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"^\d{3}-\d{3}-\d{4}$"
+        description = "A phone number in the format XXX-XXX-XXXX"
+
+    class Contact(Schema):
+        phone: PhoneNumber
+
+    schema = json_schema(Contact)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "phone": {
+                "pattern": "^\\d{3}-\\d{3}-\\d{4}$",
+                "description": "A phone number in the format XXX-XXX-XXXX",
+                "type": "string",
+            }
+        },
+        "required": ["phone"],
+    }

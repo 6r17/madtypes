@@ -1,5 +1,6 @@
 from typing import get_args, get_origin, Union, Type
 import inspect
+import re
 
 TYPE_TO_STRING: dict[type, str] = {
     str: "string",
@@ -56,17 +57,28 @@ class Annotation(type):
     def __new__(cls, name, bases, attrs):
         # Retrieve the annotation from the class attributes
         annotation = attrs.get("annotation")
+        pattern = attrs.get("pattern", None)
 
         # Override the __new__ method of the list class
         def new_method(cls, *values, **kwargs):
-            # Check the type of each value before initializing the list
+            # Check the type of each value before initializing
+            if pattern and (annotation != str and annotation != bytes):
+                raise SyntaxError(
+                    f"pattern attribute can only be applied upon `str` or `bytes`, was `{annotation}`"
+                )
             for value in values:
                 if not type_check(value, annotation):
                     raise TypeError(
                         f"All values must be compatible with the annotation '{annotation}'"
                     )
 
-            # Create the list instance and initialize it with the values
+                if pattern and not re.fullmatch(pattern, value):
+                    print(value)
+                    raise TypeError(
+                        f"`{values[0]}` did not match provided pattern `{pattern}`"
+                    )
+
+            # Create the instance and initialize it with the values
             instance = super(cls, cls).__new__(cls, *values, **kwargs)
             return instance
 
