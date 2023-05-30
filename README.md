@@ -3,8 +3,6 @@
 - 📖 Render to dict or json
 - 🌐 [Json-Schema](https://json-schema.org/)
 
-### Example
-
 ```python
 from madtypes import Schema
 
@@ -24,27 +22,8 @@ class ItemWithOptional(Schema):
 
 ItemWithOptional() # ok
 ```
-
-### Immutables
-
-```python
-from madtypes import Immutable # Immutable inherits from Schema
-
-class Foo(Immutable):
-    name: str
-    age: Optional[int]
-
-e = Foo(name="foo")
-
-e.name = "bar" # raise TypeError
-
-
-b = Foo(**e) # intianciate a new copy
-b = Foo(age=2, **e) # create a copy with changes
-
-```
   
-### json-schema
+- ### json-schema
   
 ```python
 from madtypes import json_schema, Schema
@@ -71,7 +50,7 @@ assert json_schema(Basket) == {
 }
 ```
 
-### 🔥 Annotation attributes
+- ### 🔥 Annotation attributes
 It is possible to use the `Annotation` metaclass to add type-check to a class definition.
 
 ```python
@@ -112,9 +91,9 @@ assert json_schema(DescriptedItem) == {
 
 ```
 
-### regular expression
+- ### Regular expression
 
-Regular expression can be defined on an Annotated type using the `pattern` attribute.
+Regex can be defined on an Annotated type using the `pattern` attribute.
 
 :warning: be careful to respect the json-schema [specifications](https://json-schema.org/understanding-json-schema/reference/regular_expressions.html) when using `json_schema`
 It this moment this is not checked and will render an invalid `json-schema`.
@@ -162,7 +141,7 @@ def test_pattern_is_rendered_in_json_schema():
     }
 ```
 
-### object validation
+- ### Object validation
 
 It is possible to define a `is_valid` method on a `Schema` object, which is during instantiation
 to allow restrictions based on multiple fields.
@@ -194,6 +173,24 @@ def test_object_validation():
 
 ```
 
+- ### Immutables
+
+```python
+from madtypes import Immutable # Immutable inherits from Schema
+
+class Foo(Immutable):
+    name: str
+    age: Optional[int]
+
+e = Foo(name="foo")
+
+e.name = "bar" # raise TypeError
+
+
+b = Foo(**e) # intianciate a new copy
+b = Foo(age=2, **e) # create a copy with changes
+
+```
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
@@ -204,7 +201,7 @@ def test_object_validation():
 pip3 install madtypes
 ```
 
-### Context
+- ### Context
 `madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
 
 - The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
