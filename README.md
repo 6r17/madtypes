@@ -143,7 +143,7 @@ assert json_schema(DescriptedItem) == {
 Regex can be defined on an Annotated type using the `pattern` attribute.
 
 :warning: be careful to respect the json-schema [specifications](https://json-schema.org/understanding-json-schema/reference/regular_expressions.html) when using `json_schema`
-It this moment this is not checked and will render an invalid `json-schema`.
+At the moment it is not checked nor tested, and will probably render an invalid `json-schema` without warning nor error
 
 ```python
 
