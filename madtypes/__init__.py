@@ -129,8 +129,6 @@ class Immutable(Schema):
     def __setitem__(self, __key__, __value__):
         raise TypeError("'Immutable' object does not support item assignment")
 
-def __adapt_pattern_to_json_schema(pattern):
-    
 
 def json_schema(
     annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]],
