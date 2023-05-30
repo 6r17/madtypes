@@ -115,7 +115,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
     description = "Some description"
 ```
 
-using json_schema` on `SomeDescription` will include the description attribute
+using `json_schema` on `SomeDescription` will include the description attribute
 
 ```python
 class DescriptedString(str, metaclass=Annotation):
