@@ -475,3 +475,25 @@ def test_descripted_json_schema():
         },
         "required": ["descripted"],
     }
+
+
+def test_object_validation():
+    class Item(Schema):
+        title: Optional[str]
+        content: Optional[str]
+
+        def is_valid(self, **kwargs):
+            """title is mandatory if content is absent"""
+            return (
+                False
+                if not kwargs.get("content", None)
+                and not kwargs.get("title", None)
+                else True
+            )
+
+    Item(
+        title="foo"
+    )  # we should be able to create with only one of title or content
+    Item(content="foo")
+    with pytest.raises(TypeError):
+        Item()

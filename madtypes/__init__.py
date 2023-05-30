@@ -76,6 +76,12 @@ class Schema(dict):
                 optional = is_optional_type(value)
                 if not optional:
                     raise TypeError(f"{key} is a mandatory field")
+        if not self.is_valid(**kwargs):
+            raise TypeError(f"{kwargs} did not pass object validation")
+
+    def is_valid(self, **__kwargs__) -> bool:
+        """Validation at Object scope, for validation based on multiple fields."""
+        return True
 
     @classmethod
     def get_fields(cls):
