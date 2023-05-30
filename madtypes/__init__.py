@@ -130,7 +130,7 @@ class Immutable(Schema):
         raise TypeError("'Immutable' object does not support item assignment")
 
 
-def schema(
+def json_schema(
     annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]],
     **kwargs,
 ) -> dict:
@@ -141,9 +141,9 @@ def schema(
     if origin in TYPE_TO_STRING:
         result.update({"type": TYPE_TO_STRING[origin]})
     if origin == list:
-        result.update({"items": schema(args[0])})
+        result.update({"items": json_schema(args[0])})
     if origin == tuple:
-        result.update({"items": [schema(arg) for arg in args]})
+        result.update({"items": [json_schema(arg) for arg in args]})
     if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
     if inspect.isclass(origin):
@@ -152,7 +152,7 @@ def schema(
                 {
                     "type": "object",
                     "properties": {
-                        name: schema(field)
+                        name: json_schema(field)
                         for name, field in origin.get_fields()
                     },
                 }
@@ -166,7 +166,7 @@ def schema(
                 for key, value in origin.__dict__.items()
                 if not callable(value) and not key.startswith("__")
             }
-            return schema(origin.annotation, **extra)
+            return json_schema(origin.annotation, **extra)
     if is_optional_type(annotation):
-        return schema(remove_optional(annotation))
+        return json_schema(remove_optional(annotation))
     return result
