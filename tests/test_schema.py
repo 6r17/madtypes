@@ -535,7 +535,7 @@ def test_pattern_definition_with_incorect_type():
         PhoneNumber(2)
 
 
-def test_pattern_definition():
+def test_pattern_definition_allows_normal_usage():
     class PhoneNumber(str, metaclass=Annotation):
         annotation = str
         pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
