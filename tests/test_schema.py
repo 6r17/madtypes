@@ -1,5 +1,5 @@
 from typing import Optional
-from madtypes import schema, Schema, Annotation, Immutable
+from madtypes import schema, Schema, Annotation, Immutable, type_check
 import pytest
 import json
 
@@ -497,3 +497,27 @@ def test_object_validation():
     Item(content="foo")
     with pytest.raises(TypeError):
         Item()
+
+
+def test_set_set():
+    class Basket(Schema):
+        content: set[int]
+
+    Basket(content={1, 2, 3})
+
+
+def test_type_check_primitive():
+    assert type_check(1, int)
+
+
+def test_type_check_list_of_primitive():
+    assert type_check([1, 2], list[int])
+
+
+def test_type_check_set_of_primitive():
+    assert type_check({1}, set[int])
+
+
+def test_type_check_optional_primitive():
+    assert type_check(1, Optional[int])
+    assert type_check("foo", Optional[int]) == False

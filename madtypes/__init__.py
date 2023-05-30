@@ -10,22 +10,45 @@ TYPE_TO_STRING: dict[type, str] = {
 }
 
 
-def is_value_compatible_with_annotation(value, annotation):
+def is_optional_type(annotation):
+    return getattr(annotation, "__origin__", None) is Union and type(
+        None
+    ) in getattr(annotation, "__args__", ())
+
+
+def remove_optional(typing_annotation):
+    return get_args(typing_annotation)[0]
+
+
+def type_check(value, annotation):
     origin = get_origin(annotation)
     args = get_args(annotation)
 
+    print("origin:", origin)
+    print("args:", args)
+    print("value:", value)
     if origin is None:
         # Non-generic type
         return isinstance(value, annotation)
-    elif origin is list:
-        # List annotation
-        if isinstance(value, list):
+    elif origin is list or origin is set or origin is Union:
+        print("sub annotation", args)
+        # typing.Union cannot be used by is_instance
+        if is_optional_type(annotation):
+            inner_annotation = args[0]
+            print(
+                ">>",
+                inner_annotation,
+                value,
+                type_check(value, inner_annotation),
+            )
+            return type_check(value, inner_annotation)
+        elif isinstance(value, origin):
             if args:
                 # Parametrized list annotation
                 inner_annotation = args[0]
+                print(inner_annotation)
                 return all(
-                    is_value_compatible_with_annotation(item, inner_annotation)
-                    for item in value
+                    type_check(item, inner_annotation) for item in value
                 )
 
 
@@ -38,7 +61,7 @@ class Annotation(type):
         def new_method(cls, *values, **kwargs):
             # Check the type of each value before initializing the list
             for value in values:
-                if not is_value_compatible_with_annotation(value, annotation):
+                if not type_check(value, annotation):
                     raise TypeError(
                         f"All values must be compatible with the annotation '{annotation}'"
                     )
@@ -52,21 +75,11 @@ class Annotation(type):
         return super().__new__(cls, name, bases, attrs)
 
 
-def is_optional_type(annotation):
-    return getattr(annotation, "__origin__", None) is Union and type(
-        None
-    ) in getattr(annotation, "__args__", ())
-
-
-def remove_optional(typing_annotation):
-    return get_args(typing_annotation)[0]
-
-
 class Schema(dict):
     def __init__(self, **kwargs):
         for key, value in self.__annotations__.items():
             if key in kwargs:
-                if isinstance(kwargs[key], value):
+                if type_check(kwargs[key], value):
                     super().__setitem__(key, kwargs[key])
                 else:
                     raise TypeError(
