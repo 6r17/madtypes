@@ -89,7 +89,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
     description = "Some description"
 ```
 
-Now when we use `json_schema` on `SomeDescription` to generate the json-schema, it will include the description attribute
+using json_schema` on `SomeDescription` will include the description attribute
 
 ```python
 class DescriptedString(str, metaclass=Annotation):
@@ -109,6 +109,88 @@ assert json_schema(DescriptedItem) == {
     },
     "required": ["descripted"],
 }
+
+```
+
+### regular expression
+
+Regular expression can be defined on an Annotated type using the `pattern` attribute.
+
+:warning: be careful to respect the json-schema [specifications](https://json-schema.org/understanding-json-schema/reference/regular_expressions.html) when using `json_schema`
+It this moment this is not checked and will render an invalid `json-schema`.
+
+```python
+
+def test_pattern_definition_allows_normal_usage():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"
+
+    PhoneNumber("000-000-0000")
+
+
+def test_pattern_raise_type_error():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"
+
+    with pytest.raises(TypeError):
+        PhoneNumber("oops")
+
+
+def test_pattern_is_rendered_in_json_schema():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"^\d{3}-\d{3}-\d{4}$"
+        description = "A phone number in the format XXX-XXX-XXXX"
+
+    class Contact(Schema):
+        phone: PhoneNumber
+
+    schema = json_schema(Contact)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "phone": {
+                "pattern": "^\\d{3}-\\d{3}-\\d{4}$",
+                "description": "A phone number in the format XXX-XXX-XXXX",
+                "type": "string",
+            }
+        },
+        "required": ["phone"],
+    }
+```
+
+### object validation
+
+It is possible to define a `is_valid` method on a `Schema` object, which is during instantiation
+to allow restrictions based on multiple fields.
+
+```python
+
+def test_object_validation():
+    class Item(Schema):
+        title: Optional[str]
+        content: Optional[str]
+
+        def is_valid(self, **kwargs):
+            """title is mandatory if content is absent"""
+            return (
+                False
+                if not kwargs.get("content", None)
+                and not kwargs.get("title", None)
+                else True
+            )
+
+    Item(
+        title="foo"
+    )  # we should be able to create with only one of title or content
+    Item(content="foo")
+    with pytest.raises(TypeError):
+        Item()
+
+
 
 ```
 
