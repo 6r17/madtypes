@@ -25,29 +25,18 @@ def type_check(value, annotation):
     origin = get_origin(annotation)
     args = get_args(annotation)
 
-    print("origin:", origin)
-    print("args:", args)
-    print("value:", value)
     if origin is None:
         # Non-generic type
         return isinstance(value, annotation)
     elif origin is list or origin is set or origin is Union:
-        print("sub annotation", args)
         # typing.Union cannot be used by is_instance
         if is_optional_type(annotation):
             inner_annotation = args[0]
-            print(
-                ">>",
-                inner_annotation,
-                value,
-                type_check(value, inner_annotation),
-            )
             return type_check(value, inner_annotation)
         elif isinstance(value, origin):
             if args:
                 # Parametrized list annotation
                 inner_annotation = args[0]
-                print(inner_annotation)
                 return all(
                     type_check(item, inner_annotation) for item in value
                 )
@@ -73,7 +62,6 @@ class Annotation(type):
                     )
 
                 if pattern and not re.fullmatch(pattern, value):
-                    print(value)
                     raise TypeError(
                         f"`{values[0]}` did not match provided pattern `{pattern}`"
                     )
@@ -141,6 +129,8 @@ class Immutable(Schema):
     def __setitem__(self, __key__, __value__):
         raise TypeError("'Immutable' object does not support item assignment")
 
+def __adapt_pattern_to_json_schema(pattern):
+    
 
 def json_schema(
     annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]],
