@@ -1,5 +1,5 @@
 from typing import Optional
-from madtypes import schema, Schema, Annotation, Immutable
+from madtypes import json_schema, Schema, Annotation, Immutable, type_check
 import pytest
 import json
 
@@ -67,40 +67,43 @@ def test_set():
         a.gender.male = "foo"
 
 
-def test_int_schema():
-    assert schema(int) == {"type": "integer"}
+def test_int_json_schema():
+    assert json_schema(int) == {"type": "integer"}
 
 
-def test_array_schema():
-    assert schema(list[int]) == {"type": "array", "items": {"type": "integer"}}
+def test_array_json_schema():
+    assert json_schema(list[int]) == {
+        "type": "array",
+        "items": {"type": "integer"},
+    }
 
 
-def test_tuple_schema():
-    assert schema(tuple[int, int]) == {
+def test_tuple_json_schema():
+    assert json_schema(tuple[int, int]) == {
         "type": "array",
         "items": [{"type": "integer"}, {"type": "integer"}],
     }
 
 
-def test_object_schema():
+def test_object_json_schema():
     class Item(Schema):
         name: str
 
-    assert schema(Item) == {
+    assert json_schema(Item) == {
         "type": "object",
         "properties": {"name": {"type": "string"}},
         "required": ["name"],
     }
 
 
-def test_array_of_object_schema():
+def test_array_of_object_json_schema():
     class Item(Schema):
         name: str
 
     class Basket(Schema):
         items: list[Item]
 
-    schem = schema(Basket)
+    schem = json_schema(Basket)
     print(schem)
     assert schem == {
         "type": "object",
@@ -118,14 +121,14 @@ def test_array_of_object_schema():
     }
 
 
-def test_tuple_of_object_schema():
+def test_tuple_of_object_json_schema():
     class Item(Schema):
         name: str
 
     class Basket(Schema):
         some_items: tuple[Item, Item]
 
-    schem = schema(Basket)
+    schem = json_schema(Basket)
     print(schem)
     assert schem == {
         "type": "object",
@@ -150,9 +153,9 @@ def test_tuple_of_object_schema():
     }
 
 
-def test_object_with_object_schema():
-    print(schema(Item))
-    assert schema(Item) == {
+def test_object_with_object_json_schema():
+    print(json_schema(Item))
+    assert json_schema(Item) == {
         "type": "object",
         "properties": {
             "name": {"type": "string"},
@@ -174,7 +177,7 @@ class PrimitiveArray(Schema):
 
 
 def test_annotation_array():
-    assert schema(PrimitiveArray) == {
+    assert json_schema(PrimitiveArray) == {
         "type": "object",
         "properties": {
             "items": {"type": "array", "items": {"type": "string"}}
@@ -193,7 +196,7 @@ class PrimitiveDescriptedArray(Schema):
 
 
 def test_descriptive_primitive_array():
-    result = schema(PrimitiveDescriptedArray)
+    result = json_schema(PrimitiveDescriptedArray)
     print(result)
     assert result == {
         "type": "object",
@@ -217,7 +220,7 @@ class ObjectArray(Schema):
 
 
 def test_object_array():
-    result = schema(ObjectArray)
+    result = json_schema(ObjectArray)
     print(result)
     assert result == {
         "type": "object",
@@ -253,8 +256,8 @@ class ObjectDescriptedArray(Schema):
     descripted_array: ObjectDescriptiveArray
 
 
-def test_descriptive_object_array():
-    result = schema(ObjectDescriptedArray)
+def test_descriptive_object_array_json_schema():
+    result = json_schema(ObjectDescriptedArray)
     print(result)
     assert result == {
         "type": "object",
@@ -282,8 +285,8 @@ class PrimitiveTuple(Schema):
     tupled: tuple[int, str]
 
 
-def test_annotation_tuple_schema():
-    result = schema(PrimitiveTuple)
+def test_annotation_tuple_json_schema():
+    result = json_schema(PrimitiveTuple)
     print(result)
     assert result == {
         "type": "object",
@@ -334,7 +337,7 @@ def test_schemas_expect_types():
         value: "str"
 
     with pytest.raises(SyntaxError):
-        schema(Item)
+        json_schema(Item)
 
 
 def test_immutable():
@@ -379,12 +382,12 @@ def test_custom_method():
     assert SomeClass(name="foo").method() == "foo"
 
 
-def test_optional_json_schema():
+def test_optional_json_json_schema():
     class SomeClassWithOptional(Schema):
         name: Optional[str]
 
     SomeClassWithOptional()
-    schem = schema(SomeClassWithOptional)
+    schem = json_schema(SomeClassWithOptional)
     assert schem == {
         "type": "object",
         "properties": {"name": {"type": "string"}},
@@ -396,7 +399,7 @@ def test_optional_json_schema_with_array():
         elements: Optional[list[int]]
 
     SomeClassWithOptional()
-    schem = schema(SomeClassWithOptional)
+    schem = json_schema(SomeClassWithOptional)
     assert schem == {
         "type": "object",
         "properties": {
@@ -456,7 +459,7 @@ def test_descripted_list_object_value_set():
         DescriptedFoo(name=2)
 
 
-def test_descripted_json_schema():
+def test_descripted_json_json_schema():
     class DescriptedString(str, metaclass=Annotation):
         description = "Some description"
         annotation = str
@@ -464,8 +467,8 @@ def test_descripted_json_schema():
     class DescriptedItem(Schema):
         descripted: DescriptedString
 
-    print(schema(DescriptedItem))
-    assert schema(DescriptedItem) == {
+    print(json_schema(DescriptedItem))
+    assert json_schema(DescriptedItem) == {
         "type": "object",
         "properties": {
             "descripted": {
@@ -474,4 +477,100 @@ def test_descripted_json_schema():
             },
         },
         "required": ["descripted"],
+    }
+
+
+def test_object_validation():
+    class Item(Schema):
+        title: Optional[str]
+        content: Optional[str]
+
+        def is_valid(self, **kwargs):
+            """title is mandatory if content is absent"""
+            return (
+                False
+                if not kwargs.get("content", None)
+                and not kwargs.get("title", None)
+                else True
+            )
+
+    Item(
+        title="foo"
+    )  # we should be able to create with only one of title or content
+    Item(content="foo")
+    with pytest.raises(TypeError):
+        Item()
+
+
+def test_set_set():
+    class Basket(Schema):
+        content: set[int]
+
+    Basket(content={1, 2, 3})
+
+
+def test_type_check_primitive():
+    assert type_check(1, int)
+
+
+def test_type_check_list_of_primitive():
+    assert type_check([1, 2], list[int])
+
+
+def test_type_check_set_of_primitive():
+    assert type_check({1}, set[int])
+
+
+def test_type_check_optional_primitive():
+    assert type_check(1, Optional[int])
+    assert type_check("foo", Optional[int]) == False
+
+
+def test_pattern_definition_with_incorect_type():
+    class PhoneNumber(int, metaclass=Annotation):
+        annotation = int
+        pattern = r"\b\d{3}-\d{3}-\d{4}\b"
+
+    with pytest.raises(SyntaxError):
+        PhoneNumber(2)
+
+
+def test_pattern_definition_allows_normal_usage():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    PhoneNumber("000-000-0000")
+
+
+def test_pattern_raise_type_error():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    with pytest.raises(TypeError):
+        PhoneNumber("oops")
+
+
+def test_pattern_is_rendered_in_json_schema():
+    class PhoneNumber(str, metaclass=Annotation):
+        annotation = str
+        pattern = r"^\d{3}-\d{3}-\d{4}$"
+        description = "A phone number in the format XXX-XXX-XXXX"
+
+    class Contact(Schema):
+        phone: PhoneNumber
+
+    schema = json_schema(Contact)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "phone": {
+                "pattern": "^\\d{3}-\\d{3}-\\d{4}$",
+                "description": "A phone number in the format XXX-XXX-XXXX",
+                "type": "string",
+            }
+        },
+        "required": ["phone"],
     }

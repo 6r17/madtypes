@@ -47,7 +47,7 @@ b = Foo(age=2, **e) # create a copy with changes
 ### json-schema
   
 ```python
-from madtypes import schema, Schema
+from madtypes import json_schema, Schema
 from typing import Optional
 
 class Item(Schema):
@@ -56,7 +56,7 @@ class Item(Schema):
 class Basket(Schema):
     items: list[Item]
 
-assert schema(Basket) == {
+assert json_schema(Basket) == {
     "type": "object",
     "properties": {
         "items": {
@@ -89,7 +89,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
     description = "Some description"
 ```
 
-Now when we use `schema` on `SomeDescription` to generate the json-schema, it will include the description attribute
+Now when we use `json_schema` on `SomeDescription` to generate the json-schema, it will include the description attribute
 
 ```python
 class DescriptedString(str, metaclass=Annotation):
@@ -99,7 +99,7 @@ class DescriptedString(str, metaclass=Annotation):
 class DescriptedItem(Schema):
     descripted: DescriptedString
 
-assert schema(DescriptedItem) == {
+assert json_schema(DescriptedItem) == {
     "type": "object",
     "properties": {
         "descripted": {
@@ -131,4 +131,4 @@ pip3 install madtypes
 
 - It renders natively to `JSON`, facilitating data serialization and interchange.
 
-- The library also includes a `schema()` function that generates JSON-Schema representations based on class definitions.
+- The library also includes a `json_schema()` function that generates JSON-Schema representations based on class definitions.

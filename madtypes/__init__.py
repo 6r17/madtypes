@@ -1,5 +1,6 @@
 from typing import get_args, get_origin, Union, Type
 import inspect
+import re
 
 TYPE_TO_STRING: dict[type, str] = {
     str: "string",
@@ -8,48 +9,6 @@ TYPE_TO_STRING: dict[type, str] = {
     float: "number",
     tuple: "array",
 }
-
-
-def is_value_compatible_with_annotation(value, annotation):
-    origin = get_origin(annotation)
-    args = get_args(annotation)
-
-    if origin is None:
-        # Non-generic type
-        return isinstance(value, annotation)
-    elif origin is list:
-        # List annotation
-        if isinstance(value, list):
-            if args:
-                # Parametrized list annotation
-                inner_annotation = args[0]
-                return all(
-                    is_value_compatible_with_annotation(item, inner_annotation)
-                    for item in value
-                )
-
-
-class Annotation(type):
-    def __new__(cls, name, bases, attrs):
-        # Retrieve the annotation from the class attributes
-        annotation = attrs.get("annotation")
-
-        # Override the __new__ method of the list class
-        def new_method(cls, *values, **kwargs):
-            # Check the type of each value before initializing the list
-            for value in values:
-                if not is_value_compatible_with_annotation(value, annotation):
-                    raise TypeError(
-                        f"All values must be compatible with the annotation '{annotation}'"
-                    )
-
-            # Create the list instance and initialize it with the values
-            instance = super(cls, cls).__new__(cls, *values, **kwargs)
-            return instance
-
-        # Assign the overridden __new__ method to the class
-        attrs["__new__"] = new_method
-        return super().__new__(cls, name, bases, attrs)
 
 
 def is_optional_type(annotation):
@@ -62,11 +21,65 @@ def remove_optional(typing_annotation):
     return get_args(typing_annotation)[0]
 
 
+def type_check(value, annotation):
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    if origin is None:
+        # Non-generic type
+        return isinstance(value, annotation)
+    elif origin is list or origin is set or origin is Union:
+        # typing.Union cannot be used by is_instance
+        if is_optional_type(annotation):
+            inner_annotation = args[0]
+            return type_check(value, inner_annotation)
+        elif isinstance(value, origin):
+            if args:
+                # Parametrized list annotation
+                inner_annotation = args[0]
+                return all(
+                    type_check(item, inner_annotation) for item in value
+                )
+
+
+class Annotation(type):
+    def __new__(cls, name, bases, attrs):
+        # Retrieve the annotation from the class attributes
+        annotation = attrs.get("annotation")
+        pattern = attrs.get("pattern", None)
+
+        # Override the __new__ method of the list class
+        def new_method(cls, *values, **kwargs):
+            # Check the type of each value before initializing
+            if pattern and (annotation != str and annotation != bytes):
+                raise SyntaxError(
+                    f"pattern attribute can only be applied upon `str` or `bytes`, was `{annotation}`"
+                )
+            for value in values:
+                if not type_check(value, annotation):
+                    raise TypeError(
+                        f"All values must be compatible with the annotation '{annotation}'"
+                    )
+
+                if pattern and not re.fullmatch(pattern, value):
+                    raise TypeError(
+                        f"`{values[0]}` did not match provided pattern `{pattern}`"
+                    )
+
+            # Create the instance and initialize it with the values
+            instance = super(cls, cls).__new__(cls, *values, **kwargs)
+            return instance
+
+        # Assign the overridden __new__ method to the class
+        attrs["__new__"] = new_method
+        return super().__new__(cls, name, bases, attrs)
+
+
 class Schema(dict):
     def __init__(self, **kwargs):
         for key, value in self.__annotations__.items():
             if key in kwargs:
-                if isinstance(kwargs[key], value):
+                if type_check(kwargs[key], value):
                     super().__setitem__(key, kwargs[key])
                 else:
                     raise TypeError(
@@ -76,6 +89,12 @@ class Schema(dict):
                 optional = is_optional_type(value)
                 if not optional:
                     raise TypeError(f"{key} is a mandatory field")
+        if not self.is_valid(**kwargs):
+            raise TypeError(f"{kwargs} did not pass object validation")
+
+    def is_valid(self, **__kwargs__) -> bool:
+        """Validation at Object scope, for validation based on multiple fields."""
+        return True
 
     @classmethod
     def get_fields(cls):
@@ -111,7 +130,7 @@ class Immutable(Schema):
         raise TypeError("'Immutable' object does not support item assignment")
 
 
-def schema(
+def json_schema(
     annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]],
     **kwargs,
 ) -> dict:
@@ -122,9 +141,9 @@ def schema(
     if origin in TYPE_TO_STRING:
         result.update({"type": TYPE_TO_STRING[origin]})
     if origin == list:
-        result.update({"items": schema(args[0])})
+        result.update({"items": json_schema(args[0])})
     if origin == tuple:
-        result.update({"items": [schema(arg) for arg in args]})
+        result.update({"items": [json_schema(arg) for arg in args]})
     if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
     if inspect.isclass(origin):
@@ -133,7 +152,7 @@ def schema(
                 {
                     "type": "object",
                     "properties": {
-                        name: schema(field)
+                        name: json_schema(field)
                         for name, field in origin.get_fields()
                     },
                 }
@@ -147,7 +166,7 @@ def schema(
                 for key, value in origin.__dict__.items()
                 if not callable(value) and not key.startswith("__")
             }
-            return schema(origin.annotation, **extra)
+            return json_schema(origin.annotation, **extra)
     if is_optional_type(annotation):
-        return schema(remove_optional(annotation))
+        return json_schema(remove_optional(annotation))
     return result
