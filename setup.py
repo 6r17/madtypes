@@ -14,7 +14,7 @@ setup(
     url="https://github.com/6r17/madtypes",
     packages=find_packages(include=["madtypes"]),
     keywords=["typing", "json", "json-schema"],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
