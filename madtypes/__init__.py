@@ -1,4 +1,5 @@
 from typing import get_args, get_origin, Union, Type
+from enum import Enum
 import inspect
 import re
 
@@ -98,7 +99,15 @@ class Schema(dict):
 
     @classmethod
     def get_fields(cls):
-        return list(cls.__annotations__.items())
+        fields = list(cls.__annotations__.items())
+
+        # Check if the class inherits from another Schema
+        for base in cls.__bases__:
+            if issubclass(base, Schema):
+                # Retrieve the fields from the parent class
+                fields.extend(base.get_fields())
+
+        return fields
 
     def __getattr__(self, name):
         if name in self:
@@ -117,7 +126,7 @@ class Schema(dict):
     def required_fields(cls) -> list[str]:
         return [
             name
-            for name, field in cls.__annotations__.items()
+            for name, field in cls.get_fields()
             if not is_optional_type(field)
         ]
 
@@ -140,13 +149,25 @@ def json_schema(
     args = get_args(annotation)
     if origin in TYPE_TO_STRING:
         result.update({"type": TYPE_TO_STRING[origin]})
-    if origin == list:
-        result.update({"items": json_schema(args[0])})
+    if origin == list or origin == set:
+        result.update({"type": "array", "items": json_schema(args[0])})
+    if origin == set:
+        result.update({"uniqueItems": True})
     if origin == tuple:
         result.update({"items": [json_schema(arg) for arg in args]})
     if isinstance(origin, str):
         raise SyntaxError("A typing annotation has been written as Literal")
     if inspect.isclass(origin):
+        if issubclass(origin, Enum):
+            first_enum_member = next(iter(origin))
+            enum_type = TYPE_TO_STRING[type(first_enum_member.value)]
+            result.update(
+                {
+                    "type": enum_type,
+                    "enum": [enu.value for enu in iter(origin)],
+                }
+            )
+
         if issubclass(origin, Schema):
             result.update(
                 {
