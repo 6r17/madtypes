@@ -30,25 +30,71 @@ ItemWithOptional() # ok
 from madtypes import json_schema, Schema
 from typing import Optional
 
-class Item(Schema):
-    name: Optional[str]
+def test_simple_json_schema():
+    class Item(Schema):
+        name: Optional[str]
 
-class Basket(Schema):
-    items: list[Item]
+    class Basket(Schema):
+        items: list[Item]
 
-assert json_schema(Basket) == {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
+    assert json_schema(Basket) == {
+        "type": "object",
+        "properties": {
             "items": {
-                "type": "object",
-                "properties": {"name": {"type": "string"}},
-            },
-        }
-    },
-    "required": ["items"]
-}
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                },
+            }
+        },
+        "required": ["items"]
+    }
+
+
+def test_set_json_schema():
+    class Foo(Schema):
+        my_set: set[int]
+
+    schema = json_schema(Foo)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "my_set": {
+                "type": "array",
+                "items": {"type": "integer"},
+                "uniqueItems": True,
+            }
+        },
+        "required": ["my_set"],
+    }
+    with pytest.raises(TypeError):
+        Foo(my_set=[1, 2, 3])
+    Foo(my_set={1, 2, 3})
+
+
+def test_enum():
+    class SomeEnum(Enum):
+        FOO = "Foo"
+        BAR = "Bar"
+        BAZ = "Baz"
+
+    class Item(Schema):
+        key: SomeEnum
+
+    schema = json_schema(Item)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "key": {"type": "string", "enum": ["Foo", "Bar", "Baz"]}
+        },
+        "required": ["key"],
+    }
+    Item(key=SomeEnum.FOO)
+    with pytest.raises(TypeError):
+        Item(key="Foo")
 ```
 
 - ### 🔥 Annotation attributes
