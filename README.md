@@ -23,7 +23,7 @@ class ItemWithOptional(Schema):
 
 ItemWithOptional() # ok
 ```
-  
+ 
 - ### json-schema
   
 ```python
@@ -171,6 +171,45 @@ def test_object_validation():
         Item()
 
 
+
+```
+
+
+### Multiple inheritance
+
+Sometimes technical contraints should not be rendered publicly, and you still want
+to use the existing class definitions.
+
+For instance one of those occurances is multiple objects that have different
+realities in the code, but have the same buisness organisation.
+
+Instead of having multiple keys pointing to each object, we would prefer to have a unique
+item with fields from both classes.
+
+In that occurance we can use multiple inheritance to define a class by combining
+existing definitions.
+
+```python
+
+
+def test_multiple_inheritance_json_schema():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    assert len(FooBar.get_fields()) == 2
+    schema = json_schema(FooBar)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "required": ["foo", "bar"],
+    }
 
 ```
 
