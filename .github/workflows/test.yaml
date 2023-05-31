@@ -3,9 +3,6 @@ name: Test
 on:
   push:
     branches: '**'
-    paths:
-      - 'madtypes/__init__.py'
-      - 'tests/test_schema.py'
 
 jobs:
   build:
@@ -13,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.11", "3.11"]
+        python-version: ["3.10", "3.11"]
 
     steps:
       - name: Checkout repository

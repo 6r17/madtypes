@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 from madtypes import json_schema, Schema, Annotation, Immutable, type_check
 import pytest
@@ -574,3 +575,86 @@ def test_pattern_is_rendered_in_json_schema():
         },
         "required": ["phone"],
     }
+
+
+def test_multiple_inheritance_json_schema():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    assert len(FooBar.get_fields()) == 2
+    schema = json_schema(FooBar)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "required": ["foo", "bar"],
+    }
+
+
+def test_list_json_schema():
+    class Foo(Schema):
+        my_set: list[int]
+
+    schema = json_schema(Foo)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "my_set": {
+                "type": "array",
+                "items": {"type": "integer"},
+            }
+        },
+        "required": ["my_set"],
+    }
+
+
+def test_set_json_schema():
+    class Foo(Schema):
+        my_set: set[int]
+
+    schema = json_schema(Foo)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "my_set": {
+                "type": "array",
+                "items": {"type": "integer"},
+                "uniqueItems": True,
+            }
+        },
+        "required": ["my_set"],
+    }
+    with pytest.raises(TypeError):
+        Foo(my_set=[1, 2, 3])
+    Foo(my_set={1, 2, 3})
+
+
+def test_enum():
+    class SomeEnum(Enum):
+        FOO = "Foo"
+        BAR = "Bar"
+        BAZ = "Baz"
+
+    class Item(Schema):
+        key: SomeEnum
+
+    schema = json_schema(Item)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "key": {"type": "string", "enum": ["Foo", "Bar", "Baz"]}
+        },
+        "required": ["key"],
+    }
+    Item(key=SomeEnum.FOO)
+    with pytest.raises(TypeError):
+        Item(key="Foo")

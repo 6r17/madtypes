@@ -1,7 +1,8 @@
 # madtypes
-- 💢 Python class typing that raise TypeError at runtime
+- 💢 Python typing that raise TypeError at runtime
 - 📖 Render to dict or json
-- 🌐 [Json-Schema](https://json-schema.org/)
+- 🌐 Generate [Json-Schema](https://json-schema.org/)
+- 💪 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
 
 ```python
 from madtypes import Schema
@@ -22,32 +23,78 @@ class ItemWithOptional(Schema):
 
 ItemWithOptional() # ok
 ```
-  
+ 
 - ### json-schema
   
 ```python
 from madtypes import json_schema, Schema
 from typing import Optional
 
-class Item(Schema):
-    name: Optional[str]
+def test_simple_json_schema():
+    class Item(Schema):
+        name: Optional[str]
 
-class Basket(Schema):
-    items: list[Item]
+    class Basket(Schema):
+        items: list[Item]
 
-assert json_schema(Basket) == {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
+    assert json_schema(Basket) == {
+        "type": "object",
+        "properties": {
             "items": {
-                "type": "object",
-                "properties": {"name": {"type": "string"}},
-            },
-        }
-    },
-    "required": ["items"]
-}
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                },
+            }
+        },
+        "required": ["items"]
+    }
+
+
+def test_set_json_schema():
+    class Foo(Schema):
+        my_set: set[int]
+
+    schema = json_schema(Foo)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "my_set": {
+                "type": "array",
+                "items": {"type": "integer"},
+                "uniqueItems": True,
+            }
+        },
+        "required": ["my_set"],
+    }
+    with pytest.raises(TypeError):
+        Foo(my_set=[1, 2, 3])
+    Foo(my_set={1, 2, 3})
+
+
+def test_enum():
+    class SomeEnum(Enum):
+        FOO = "Foo"
+        BAR = "Bar"
+        BAZ = "Baz"
+
+    class Item(Schema):
+        key: SomeEnum
+
+    schema = json_schema(Item)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "key": {"type": "string", "enum": ["Foo", "Bar", "Baz"]}
+        },
+        "required": ["key"],
+    }
+    Item(key=SomeEnum.FOO)
+    with pytest.raises(TypeError):
+        Item(key="Foo")
 ```
 
 - ### 🔥 Annotation attributes
@@ -173,6 +220,45 @@ def test_object_validation():
 
 ```
 
+
+### Multiple inheritance
+
+Sometimes technical contraints should not be rendered publicly, and you still want
+to use the existing class definitions.
+
+For instance one of those occurances is multiple objects that have different
+realities in the code, but have the same buisness organisation.
+
+Instead of having multiple keys pointing to each object, we would prefer to have a unique
+item with fields from both classes.
+
+In that occurance we can use multiple inheritance to define a class by combining
+existing definitions.
+
+```python
+
+
+def test_multiple_inheritance_json_schema():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    assert len(FooBar.get_fields()) == 2
+    schema = json_schema(FooBar)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "required": ["foo", "bar"],
+    }
+
+```
+
 - ### Immutables
 
 ```python
@@ -194,7 +280,7 @@ b = Foo(age=2, **e) # create a copy with changes
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
-![python: >3.9](https://img.shields.io/badge/python-%3E3.9-informational)
+![python: >3.10](https://img.shields.io/badge/python-%3E3.10-informational)
 ### Installation
 
 ```bash
