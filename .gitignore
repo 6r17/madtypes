@@ -1,1 +1,5 @@
 *.pyc
+.coverage
+build
+dist
+madtypes.egg-info/
