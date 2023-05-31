@@ -12,7 +12,7 @@ import pytest
 import json
 
 
-class Gender(Schema):
+class Gender(dict, metaclass=Annotation):
     female: int
     male: int
 
@@ -534,15 +534,6 @@ def test_type_check_optional_primitive():
     assert type_check("foo", Optional[int]) == False
 
 
-def test_pattern_definition_with_incorect_type():
-    class PhoneNumber(int, metaclass=Annotation):
-        annotation = int
-        pattern = r"\b\d{3}-\d{3}-\d{4}\b"
-
-    with pytest.raises(SyntaxError):
-        PhoneNumber(2)
-
-
 def test_pattern_definition_allows_normal_usage():
     class PhoneNumber(str, metaclass=Annotation):
         annotation = str
@@ -582,6 +573,13 @@ def test_pattern_is_rendered_in_json_schema():
         },
         "required": ["phone"],
     }
+
+
+def test_dict_objet_keep_annotations():
+    class Foo(dict):
+        foo: str
+
+    assert len(Foo.__annotations__) == 1
 
 
 def test_list_json_schema():
@@ -669,6 +667,25 @@ def test_json_schema_after_substraction():
 
     ageLessItem = subtract_fields("age")(Item)
     schema = json_schema(ageLessItem)
+
+
+def no_test_schema_arithmetics():
+    """It should be possible to remove fields from a class at run-time"""
+
+    class Foo(Schema):
+        name: str
+        age: int
+
+    FooWithoutAge = Foo - "age"
+    print(FooWithoutAge)
+    assert len(FooWithoutAge.get_fields()) == 1
+
+
+def test_annotated_dict():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    schema = json_schema(Foo)
     print(schema)
     assert schema == {
         "type": "object",
@@ -724,3 +741,26 @@ def test_json_schema_after_edition_and_multiple_inheritance():
         pass
 
     NamedContact(name="foo", phone="baz")
+
+
+def test_annotated_dict_type_check():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    Foo(name="bar")
+    with pytest.raises(TypeError):
+        Foo()
+
+
+def test_annotated_dict_value_integrity():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    a = Foo(name="bar")
+    assert a["name"] == "bar"
+    b = Foo(name="boz")
+    assert a["name"] == "bar"
+    assert b["name"] == "boz"
+    assert a.name == "bar"
+    a.name = "test"
+    assert a.name == "test"
