@@ -1,7 +1,8 @@
 # madtypes
-- 💢 Python class typing that raise TypeError at runtime
+- 💢 Python typing that raise TypeError at runtime
 - 📖 Render to dict or json
-- 🌐 [Json-Schema](https://json-schema.org/)
+- 🌐 Generate [Json-Schema](https://json-schema.org/)
+- 💪 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
 
 ```python
 from madtypes import Schema
