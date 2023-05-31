@@ -234,7 +234,7 @@ b = Foo(age=2, **e) # create a copy with changes
 
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
-![python: >3.9](https://img.shields.io/badge/python-%3E3.9-informational)
+![python: >3.10](https://img.shields.io/badge/python-%3E3.9-informational)
 ### Installation
 
 ```bash
