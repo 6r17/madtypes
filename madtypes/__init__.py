@@ -76,9 +76,46 @@ class Annotation(type):
         return super().__new__(cls, name, bases, attrs)
 
 
+def subtract_fields(*fields):
+    def decorator(cls):
+        new_annotations = cls.__annotations__.copy()
+        new_cls_dict = dict(cls.__dict__)
+
+        for field in fields:
+            if field in new_annotations:
+                del new_annotations[field]
+            if field in new_cls_dict:
+                del new_cls_dict[field]  # pragma: no cover (tested by getattr)
+
+        new_cls_dict["__annotations__"] = new_annotations
+
+        new_cls = type(cls.__name__, cls.__bases__, new_cls_dict)
+        return new_cls
+
+    return decorator
+
+
 class Schema(dict):
+    @classmethod
+    def get_fields(cls):
+        fields = list(cls.__annotations__.items())
+
+        # Check if the class inherits from another Schema
+        for base in cls.__bases__:
+            if issubclass(base, Schema):
+                # Retrieve the fields from the parent class
+                fields.extend(base.get_fields())
+
+        return fields
+
     def __init__(self, **kwargs):
-        for key, value in self.__annotations__.items():
+        fields = dict(self.get_fields())
+        for key, value in kwargs.items():
+            if key not in fields:
+                raise TypeError(
+                    f"{key} is not a key for {type(self).__name__}"
+                )
+        for key, value in fields.items():
             if key in kwargs:
                 if type_check(kwargs[key], value):
                     super().__setitem__(key, kwargs[key])
@@ -96,18 +133,6 @@ class Schema(dict):
     def is_valid(self, **__kwargs__) -> bool:
         """Validation at Object scope, for validation based on multiple fields."""
         return True
-
-    @classmethod
-    def get_fields(cls):
-        fields = list(cls.__annotations__.items())
-
-        # Check if the class inherits from another Schema
-        for base in cls.__bases__:
-            if issubclass(base, Schema):
-                # Retrieve the fields from the parent class
-                fields.extend(base.get_fields())
-
-        return fields
 
     def __getattr__(self, name):
         if name in self:

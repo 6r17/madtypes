@@ -1,6 +1,13 @@
 from enum import Enum
 from typing import Optional
-from madtypes import json_schema, Schema, Annotation, Immutable, type_check
+from madtypes import (
+    json_schema,
+    Schema,
+    Annotation,
+    Immutable,
+    type_check,
+    subtract_fields,
+)
 import pytest
 import json
 
@@ -577,26 +584,6 @@ def test_pattern_is_rendered_in_json_schema():
     }
 
 
-def test_multiple_inheritance_json_schema():
-    class Foo(Schema):
-        foo: str
-
-    class Bar(Schema):
-        bar: str
-
-    class FooBar(Foo, Bar):
-        pass
-
-    assert len(FooBar.get_fields()) == 2
-    schema = json_schema(FooBar)
-    print(schema)
-    assert schema == {
-        "type": "object",
-        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
-        "required": ["foo", "bar"],
-    }
-
-
 def test_list_json_schema():
     class Foo(Schema):
         my_set: list[int]
@@ -658,3 +645,82 @@ def test_enum():
     Item(key=SomeEnum.FOO)
     with pytest.raises(TypeError):
         Item(key="Foo")
+
+
+def test_class_field_substraction():
+    class Item(Schema):
+        name: str
+        age: int
+
+    ageLessItem = subtract_fields("age")(Item)
+    # we can dynamicly create a new class by substracting fields from it
+    assert len(ageLessItem.get_fields()) == 1
+    with pytest.raises(TypeError):
+        ageLessItem(name="foo", age=2)
+    ageLessItem(name="foo")
+    with pytest.raises(AttributeError):
+        assert getattr(Item, "age")
+
+
+def test_json_schema_after_substraction():
+    class Item(Schema):
+        name: str
+        age: int
+
+    ageLessItem = subtract_fields("age")(Item)
+    schema = json_schema(ageLessItem)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    }
+
+
+def test_multiple_inheritance_json_schema():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    assert len(FooBar.get_fields()) == 2
+    schema = json_schema(FooBar)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "required": ["foo", "bar"],
+    }
+
+
+def test_multiple_inheritance_integrity():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    FooBar(foo="foo", bar="bar")
+
+
+def test_json_schema_after_edition_and_multiple_inheritance():
+    class Person(Schema):
+        name: str
+        age: int
+
+    class Contact(Schema):
+        phone: str
+
+    agelessPerson = subtract_fields("age")(Person)
+
+    class NamedContact(agelessPerson, Contact):
+        pass
+
+    NamedContact(name="foo", phone="baz")
