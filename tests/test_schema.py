@@ -678,3 +678,5 @@ def test_class_field_substraction():
     with pytest.raises(TypeError):
         ageLessItem(name="foo", age=2)
     ageLessItem(name="foo")
+    with pytest.raises(AttributeError):
+        assert getattr(Item, "age")

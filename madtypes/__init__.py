@@ -85,7 +85,7 @@ def subtract_fields(*fields):
             if field in new_annotations:
                 del new_annotations[field]
             if field in new_cls_dict:
-                del new_cls_dict[field]
+                del new_cls_dict[field]  # pragma: no cover (tested by getattr)
 
         new_cls_dict["__annotations__"] = new_annotations
 
