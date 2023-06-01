@@ -76,8 +76,30 @@ class Annotation(type):
         return super().__new__(cls, name, bases, attrs)
 
 
+def subtract_fields(*fields):
+    def decorator(cls):
+        new_annotations = cls.__annotations__.copy()
+        new_cls_dict = dict(cls.__dict__)
+
+        for field in fields:
+            if field in new_annotations:
+                del new_annotations[field]
+            if field in new_cls_dict:
+                del new_cls_dict[field]
+
+        new_cls_dict["__annotations__"] = new_annotations
+
+        new_cls = type(cls.__name__, cls.__bases__, new_cls_dict)
+        return new_cls
+
+    return decorator
+
+
 class Schema(dict):
     def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            if key not in self.__annotations__:
+                raise TypeError(f"{key} is not for {self}")
         for key, value in self.__annotations__.items():
             if key in kwargs:
                 if type_check(kwargs[key], value):
