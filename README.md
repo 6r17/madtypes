@@ -220,7 +220,6 @@ def test_object_validation():
 
 ```
 
-
 ### Multiple inheritance
 
 Sometimes technical contraints should not be rendered publicly, and you still want
@@ -256,6 +255,15 @@ def test_multiple_inheritance_json_schema():
         "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
         "required": ["foo", "bar"],
     }
+
+```
+
+- ### Dynamicly remove a field
+
+It is possible to dynamicly remove a field from a class using the `subtract_fields(args: tuple[str])` decorator which will return a new class without the provided fields.
+
+```python
+
 
 ```
 
