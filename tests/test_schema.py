@@ -680,3 +680,18 @@ def test_class_field_substraction():
     ageLessItem(name="foo")
     with pytest.raises(AttributeError):
         assert getattr(Item, "age")
+
+
+def test_json_schema_after_substraction():
+    class Item(Schema):
+        name: str
+        age: int
+
+    ageLessItem = subtract_fields("age")(Item)
+    schema = json_schema(ageLessItem)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    }
