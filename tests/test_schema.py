@@ -584,26 +584,6 @@ def test_pattern_is_rendered_in_json_schema():
     }
 
 
-def test_multiple_inheritance_json_schema():
-    class Foo(Schema):
-        foo: str
-
-    class Bar(Schema):
-        bar: str
-
-    class FooBar(Foo, Bar):
-        pass
-
-    assert len(FooBar.get_fields()) == 2
-    schema = json_schema(FooBar)
-    print(schema)
-    assert schema == {
-        "type": "object",
-        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
-        "required": ["foo", "bar"],
-    }
-
-
 def test_list_json_schema():
     class Foo(Schema):
         my_set: list[int]
@@ -695,3 +675,52 @@ def test_json_schema_after_substraction():
         "properties": {"name": {"type": "string"}},
         "required": ["name"],
     }
+
+
+def test_multiple_inheritance_json_schema():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    assert len(FooBar.get_fields()) == 2
+    schema = json_schema(FooBar)
+    print(schema)
+    assert schema == {
+        "type": "object",
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "required": ["foo", "bar"],
+    }
+
+
+def test_multiple_inheritance_integrity():
+    class Foo(Schema):
+        foo: str
+
+    class Bar(Schema):
+        bar: str
+
+    class FooBar(Foo, Bar):
+        pass
+
+    FooBar(foo="foo", bar="bar")
+
+
+def test_json_schema_after_edition_and_multiple_inheritance():
+    class Person(Schema):
+        name: str
+        age: int
+
+    class Contact(Schema):
+        phone: str
+
+    agelessPerson = subtract_fields("age")(Person)
+
+    class NamedContact(agelessPerson, Contact):
+        pass
+
+    NamedContact(name="foo", phone="baz")

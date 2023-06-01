@@ -96,11 +96,26 @@ def subtract_fields(*fields):
 
 
 class Schema(dict):
+    @classmethod
+    def get_fields(cls):
+        fields = list(cls.__annotations__.items())
+
+        # Check if the class inherits from another Schema
+        for base in cls.__bases__:
+            if issubclass(base, Schema):
+                # Retrieve the fields from the parent class
+                fields.extend(base.get_fields())
+
+        return fields
+
     def __init__(self, **kwargs):
+        fields = dict(self.get_fields())
         for key, value in kwargs.items():
-            if key not in self.__annotations__:
-                raise TypeError(f"{key} is not for {self}")
-        for key, value in self.__annotations__.items():
+            if key not in fields:
+                raise TypeError(
+                    f"{key} is not a key for {type(self).__name__}"
+                )
+        for key, value in fields.items():
             if key in kwargs:
                 if type_check(kwargs[key], value):
                     super().__setitem__(key, kwargs[key])
@@ -118,18 +133,6 @@ class Schema(dict):
     def is_valid(self, **__kwargs__) -> bool:
         """Validation at Object scope, for validation based on multiple fields."""
         return True
-
-    @classmethod
-    def get_fields(cls):
-        fields = list(cls.__annotations__.items())
-
-        # Check if the class inherits from another Schema
-        for base in cls.__bases__:
-            if issubclass(base, Schema):
-                # Retrieve the fields from the parent class
-                fields.extend(base.get_fields())
-
-        return fields
 
     def __getattr__(self, name):
         if name in self:
