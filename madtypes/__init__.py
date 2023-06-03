@@ -65,10 +65,9 @@ def return_true(*__args__, **__kwargs__) -> bool:
 class Annotation(type):
     def get_fields(cls):
         fields = list(cls.__annotations__.items())
-        print("get_fields", cls.__annotations__)
         # Check if the class inherits from another Schema
         for base in cls.__bases__:
-            if issubclass(base, Schema):
+            if issubclass(base, Annotation):
                 # Retrieve the fields from the parent class
                 fields.extend(base.get_fields())
 
@@ -119,6 +118,9 @@ class Annotation(type):
                         raise TypeError(
                             f"{kwargs[name]} is not valid by `is_valid` function"
                         )
+                for name, value in kwargs.items():
+                    if name not in cls.__annotations__:
+                        raise TypeError(f"{name} is not a valid key for {cls}")
             # Create the instance and initialize it with the values
             instance = super(cls, cls).__new__(cls, *values, **kwargs)
             return instance
@@ -133,96 +135,27 @@ class Annotation(type):
         return super().__new__(cls, name, bases, attrs)
 
 
-def subtract_fields(*fields):
+def remove_fields(*args):
     def decorator(cls):
-        new_annotations = cls.__annotations__.copy()
-        new_cls_dict = dict(cls.__dict__)
+        for field_name in args:
+            # Remove the field
+            if hasattr(cls, field_name):
+                delattr(cls, field_name)
 
-        for field in fields:
-            if field in new_annotations:
-                del new_annotations[field]
-            if field in new_cls_dict:
-                del new_cls_dict[field]  # pragma: no cover (tested by getattr)
+            # Remove the annotation (if any)
+            if (
+                hasattr(cls, "__annotations__")
+                and field_name in cls.__annotations__
+            ):
+                cls.__annotations__.pop(field_name)
 
-        new_cls_dict["__annotations__"] = new_annotations
-
-        new_cls = type(cls.__name__, cls.__bases__, new_cls_dict)
-        return new_cls
+        return cls
 
     return decorator
 
 
-class Schema(dict):
-    @classmethod
-    def get_fields(cls):
-        fields = list(cls.__annotations__.items())
-
-        # Check if the class inherits from another Schema
-        for base in cls.__bases__:
-            if issubclass(base, Schema):
-                # Retrieve the fields from the parent class
-                fields.extend(base.get_fields())
-
-        return fields
-
-    def __init__(self, **kwargs):
-        fields = dict(self.get_fields())
-        for key, value in kwargs.items():
-            if key not in fields:
-                raise TypeError(
-                    f"{key} is not a key for {type(self).__name__}"
-                )
-        for key, value in fields.items():
-            if key in kwargs:
-                if type_check(kwargs[key], value):
-                    super().__setitem__(key, kwargs[key])
-                else:
-                    raise TypeError(
-                        f"{kwargs[key]} is not an instance of {value}"
-                    )
-            else:
-                optional = is_optional_type(value)
-                if not optional:
-                    raise TypeError(f"{key} is a mandatory field")
-        if not self.is_valid(**kwargs):
-            raise TypeError(f"{kwargs} did not pass object validation")
-
-    def is_valid(self, **__kwargs__) -> bool:
-        """Validation at Object scope, for validation based on multiple fields."""
-        return True
-
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        # I don't know how to trigger the next line, it's more of an `in-case'
-        return super().__getattribute__(name)  # pragma: no cover
-
-    def __setattr__(self, name, value):
-        annotation = self.__annotations__[name]
-
-        if not isinstance(value, annotation):
-            raise TypeError(f"{value} is not an instance of {annotation}")
-        self[name] = value
-
-    @classmethod
-    def required_fields(cls) -> list[str]:
-        return [
-            name
-            for name, field in cls.get_fields()
-            if not is_optional_type(field)
-        ]
-
-
-class Immutable(Schema):
-    def __setattr__(self, __name__, __value__):
-        raise TypeError("'Immutable' object does not support item assignment")
-
-    def __setitem__(self, __key__, __value__):
-        raise TypeError("'Immutable' object does not support item assignment")
-
-
 def json_schema(
-    annotation: Union[Type["Type"], Type["Annotation"], Type["Schema"]],
+    annotation: Union[Type["Type"], Type["Annotation"]],
     **kwargs,
 ) -> dict:
     result = kwargs
@@ -250,21 +183,6 @@ def json_schema(
                 }
             )
             return result
-
-        if issubclass(origin, Schema):
-            result.update(
-                {
-                    "type": "object",
-                    "properties": {
-                        name: json_schema(field)
-                        for name, field in origin.get_fields()
-                    },
-                }
-            )
-            required = origin.required_fields()
-            if len(required) > 0:
-                result.update({"required": required})
-            return result
         if getattr(origin, "annotation", False):
             extra = {
                 key: value
@@ -282,9 +200,8 @@ def json_schema(
                     },
                 }
             )
-            required = [
-                name for name, __anotation__ in origin.__annotations__.items()
-            ]
+
+            required = origin.required_fields()
             if len(required) > 0:
                 result.update({"required": required})
 

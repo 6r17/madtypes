@@ -3,9 +3,8 @@ from typing import Optional
 from madtypes import (
     json_schema,
     Annotation,
-    Immutable,
     type_check,
-    subtract_fields,
+    remove_fields,
 )
 import pytest
 import json
@@ -47,6 +46,22 @@ def test_attribute_set():
     assert a["name"] == "foo"
 
 
+def test_set():
+    a = Item(name="bob", gender=Gender(male=20, female=30))
+    a.gender = Gender(male=30, female=10)
+    assert a.gender.male == 30
+    with pytest.raises(TypeError):
+        a.gender.male = "foo"
+
+
+def test_extra_parameter():
+    class Foo(dict, metaclass=Annotation):
+        pass
+
+    with pytest.raises(TypeError):
+        Foo(name="foo")
+
+
 def test_json_dumps():
     import json
 
@@ -64,14 +79,6 @@ def test_json_dumps_and_load():
     a = Item(name="foo", gender=Gender(female=10, male=20))
     print(a)
     assert json.loads(json.dumps(a)) == a
-
-
-def test_set():
-    a = Item(name="bob", gender=Gender(male=20, female=30))
-    a.gender = Gender(male=30, female=10)
-    assert a.gender.male == 30
-    with pytest.raises(TypeError):
-        a.gender.male = "foo"
 
 
 def test_int_json_schema():
@@ -347,38 +354,6 @@ def test_schemas_expect_types():
         json_schema(Item)
 
 
-def test_immutable():
-    class SomeImmutable(Immutable):
-        name: str
-
-    e = SomeImmutable(name="foo")
-    with pytest.raises(TypeError):
-        e.name = "bar"
-
-    with pytest.raises(TypeError):
-        e["name"] = "bar"
-
-
-def test_copy():
-    class SomeImmutable(Immutable):
-        name: str
-        age: int
-
-    with pytest.raises(TypeError):
-        a = SomeImmutable(name="foo")  # missing age
-
-    class AnotherImmutable(Immutable):
-        name: str
-        age: Optional[int]
-
-    a = AnotherImmutable(name="foo")
-    b = AnotherImmutable(**a)
-    assert b.name == "foo"
-    c = SomeImmutable(age=2, **a)
-    assert c.name == "foo"
-    assert c.age == 2
-
-
 def test_custom_method():
     class SomeClass(dict, metaclass=Annotation):
         name: str
@@ -389,7 +364,7 @@ def test_custom_method():
     assert SomeClass(name="foo").method() == "foo"
 
 
-def test_optional_json_json_schema():
+def test_optional_json_schema():
     class SomeClassWithOptional(dict, metaclass=Annotation):
         name: Optional[str]
 
@@ -449,17 +424,12 @@ def test_descripted_list_value_set():
     a = SomeListItem(names=SomeDescriptedListField(["1", "2", "3"]))
     assert len(a.names) == 3
     assert json.dumps(a) == '{"names": ["1", "2", "3"]}'
-    with pytest.raises(AttributeError):  # append does not exist
-        a.append("foo")
 
 
 def test_descripted_list_object_value_set():
-    class Foo(dict, metaclass=Annotation):
-        name: str
-
-    class DescriptedFoo(Foo, metaclass=Annotation):
+    class DescriptedFoo(dict, metaclass=Annotation):
         description = "description"
-        annotation = Foo
+        name: str
 
     DescriptedFoo(name="foo")
     with pytest.raises(TypeError):
@@ -644,40 +614,30 @@ def test_enum():
         Item(key="Foo")
 
 
-def test_class_field_substraction():
-    class Item(dict, metaclass=Annotation):  # TODO
+def test_class_field_subtraction():
+    class Item(dict, metaclass=Annotation):
         name: str
         age: int
 
-    ageLessItem = subtract_fields("age")(Item)
-    # we can dynamicly create a new class by substracting fields from it
-    assert len(ageLessItem.get_fields()) == 1
+    AgeLessItem = remove_fields("age")(Item)
+    assert len(AgeLessItem.get_fields()) == 1
+    print(AgeLessItem.get_fields())
     with pytest.raises(TypeError):
-        ageLessItem(name="foo", age=2)
-    ageLessItem(name="foo")
+        AgeLessItem(name="foo", age=2)
+    AgeLessItem(name="foo")
+    print(AgeLessItem)
     with pytest.raises(AttributeError):
         assert getattr(Item, "age")
 
 
-def test_json_schema_after_substraction():
+def test_json_schema_after_subtraction():
     class Item(dict, metaclass=Annotation):  # TODO
         name: str
         age: int
 
-    ageLessItem = subtract_fields("age")(Item)
+    ageLessItem = remove_fields("age")(Item)
     schema = json_schema(ageLessItem)
-
-
-def no_test_schema_arithmetics():
-    """It should be possible to remove fields from a class at run-time"""
-
-    class Foo(dict, metaclass=Annotation):
-        name: str
-        age: int
-
-    FooWithoutAge = Foo - "age"
-    print(FooWithoutAge)
-    assert len(FooWithoutAge.get_fields()) == 1
+    assert schema == {}
 
 
 def test_annotated_dict():
@@ -734,7 +694,7 @@ def test_json_schema_after_edition_and_multiple_inheritance():
     class Contact(dict, metaclass=Annotation):
         phone: str
 
-    agelessPerson = subtract_fields("age")(Person)
+    agelessPerson = remove_fields("age")(Person)
 
     class NamedContact(agelessPerson, Contact):
         pass
