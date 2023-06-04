@@ -1,12 +1,12 @@
 # madtypes
-- 💢 Python typing that raise TypeError at runtime
-- 📖 Render to dict or json
+- 💢 Python `Type` that raise TypeError at runtime
 - 🌐 Generate [Json-Schema](https://json-schema.org/)
-- 💪 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
+- 📖 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
+
 
 ```python
 
-def test_simple_dict_incorrect_setattr():
+def test_simple_dict_incorrect_setattr(): # Python default typing 🤯 DOES NOT RAISE ERROR 🤯
     class Simple(dict):
         name: str
 
@@ -15,7 +15,7 @@ def test_simple_dict_incorrect_setattr():
     a.simple = 5
 
 
-class Person(dict, metaclass=MadType):
+class Person(dict, metaclass=MadType): # 💢 MadType does !
     name: str
 
 
@@ -26,6 +26,7 @@ def test_mad_dict_type_error_with_incorrect_creation():
 
 
 ```
+- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) proving the features and usage of MadType class
  
 - ### json-schema
 
@@ -42,10 +43,10 @@ def test_object_json_schema():
     }
 ```
 
-- 18 tests proving the features and usage of json-schema.
+- 💪 [18](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) tests proving the features and usage of json-schema function.
 
 - ### 🔥 MadType attributes
-It is possible to use the `MadType` metaclass customize a type.
+It is possible to use the `MadType` metaclass customize primitives as well.
 
 ```python
 class SomeStringAttribute(str, metaclass=MadType):
