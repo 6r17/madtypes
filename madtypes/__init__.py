@@ -1,15 +1,9 @@
 from typing import get_args, get_origin, Union, Type
-from enum import Enum
 import inspect
-import re
 
-TYPE_TO_STRING: dict[type, str] = {
-    str: "string",
-    int: "integer",
-    list: "array",
-    float: "number",
-    tuple: "array",
-}
+
+def DOES_NOTHING(__self__, *__values__, **__keyvalues__):
+    pass
 
 
 def is_optional_type(annotation):
@@ -43,119 +37,150 @@ def type_check(value, annotation):
                 )
 
 
-def dict_getattr(self, name):
-    if name in self:
-        return self[name]
-    # I don't know how to trigger the next line, it's more of an `in-case'
-    return super().__getattribute__(name)  # pragma: no cover
+def generate_annotations_dict(cls):
+    annotations_dict = cls.__annotations__
 
-
-def dict_setattr(self, name, value):
-    annotation = self.__annotations__[name]
-
-    if not isinstance(value, annotation):
-        raise TypeError(f"{value} is not an instance of {annotation}")
-    self[name] = value
-
-
-def return_true(*__args__, **__kwargs__) -> bool:
-    return True
-
-
-class Annotation(type):
-    def get_fields(cls):
-        fields = list(cls.__annotations__.items())
-        # Check if the class inherits from another Schema
-        for base in cls.__bases__:
-            if issubclass(base, Annotation):
-                # Retrieve the fields from the parent class
-                fields.extend(base.get_fields())
-
-        return fields
-
-    def required_fields(cls) -> list[str]:
-        return [
-            name
-            for name, field in cls.get_fields()
-            if not is_optional_type(field)
-        ]
-
-    def __new__(cls, name, bases, attrs):
-        # Retrieve the annotation from the class attributes
-        annotation = attrs.get("annotation")
-        pattern = attrs.get("pattern")
-
-        # Override the __new__ method
-        def new_method(cls, *values, **kwargs):
-            # Check the type of each value before initializing
-            nonlocal annotation
-            for value in values:
-                if not type_check(value, annotation):
-                    raise TypeError(
-                        f"All values must be compatible with the annotation '{annotation}'"
+    for base in cls.__bases__:
+        if hasattr(base, "__annotations__"):
+            for key, value in base.__annotations__.items():
+                if key in annotations_dict and annotations_dict[key] != value:
+                    raise SyntaxError(
+                        f"Conflicting annotations for key '{key}' in base classes"
                     )
-                if (
-                    pattern
-                    and (annotation == str or annotation == bytes)
-                    and not re.fullmatch(pattern, value)
-                ):
+                annotations_dict[key] = value
+
+    return annotations_dict
+
+
+def typecheck_dict_initialization(method):
+    """Decorator for dict.__init__"""
+
+    def wrapper(self, *values, **key_values):
+        # todo:
+        # values make no sense in dict except for user defined behavior
+        # in which case type_check should be applied using the method annotation
+
+        _annotations_ = generate_annotations_dict(self.__class__)
+
+        for key, value in key_values.items():
+            if key not in _annotations_:
+                raise TypeError(f"{key} is not part of {self.__class__}")
+            elif not type_check(value, _annotations_[key]):
+                raise TypeError(
+                    f"{value} is not compatible with {_annotations_[key]}"
+                )
+        for key, value in _annotations_.items():
+            if key not in key_values:
+                if not is_optional_type(value):
                     raise TypeError(
-                        f"`{values[0]}` did not match provided pattern `{pattern}`"
+                        f"{key} is mandatory key of {self.__class__}"
                     )
-            if cls.__bases__[0] == dict:
-                for name, annotation in cls.__annotations__.items():
-                    if name in kwargs:
-                        if not type_check(kwargs[name], annotation):
-                            raise TypeError(
-                                f"{kwargs[name]} is not an instance of {annotation}"
-                            )
-                    else:
-                        if not is_optional_type(annotation):
-                            raise TypeError(
-                                f"{name} is mandatory {annotation} of {cls}"
-                            )
-                    if not cls.is_valid():
-                        raise TypeError(
-                            f"{kwargs[name]} is not valid by `is_valid` function"
-                        )
-                for name, value in kwargs.items():
-                    if name not in cls.__annotations__:
-                        raise TypeError(f"{name} is not a valid key for {cls}")
-            # Create the instance and initialize it with the values
-            instance = super(cls, cls).__new__(cls, *values, **kwargs)
-            return instance
 
-        # Assign the overridden __new__ method to the class
-        attrs["__new__"] = new_method
-        if bases[0] == dict:
-            attrs["__getattr__"] = dict_getattr
-            attrs["__setattr__"] = dict_setattr
-            if not attrs.get("is_valid", None):
-                attrs["is_valid"] = return_true
-        return super().__new__(cls, name, bases, attrs)
+        if method != DOES_NOTHING:
+            # if user overwrites __init__ it is up to him to super
+            method(self, *values, **key_values)
+        else:
+            super(self.__class__, self).__init__(*values, **key_values)
+
+    return wrapper
 
 
-def remove_fields(*args):
+def subtract_fields(*fields):
     def decorator(cls):
-        for field_name in args:
-            # Remove the field
-            if hasattr(cls, field_name):
-                delattr(cls, field_name)
+        new_annotations = cls.__annotations__.copy()
+        new_cls_dict = dict(cls.__dict__)
 
-            # Remove the annotation (if any)
-            if (
-                hasattr(cls, "__annotations__")
-                and field_name in cls.__annotations__
-            ):
-                cls.__annotations__.pop(field_name)
+        for field in fields:
+            if field in new_annotations:
+                del new_annotations[field]
 
-        return cls
+        new_cls_dict["__annotations__"] = new_annotations
+
+        new_cls = type(cls.__name__, cls.__bases__, new_cls_dict)
+        return new_cls
 
     return decorator
 
 
+def insert_typecheck_for(_type_):
+    def typecheck_primitive_initialization(method):
+        """Decorator for string.__init__"""
+
+        def wrapper(self, *values, **key_values):
+            if method != DOES_NOTHING:
+                method(*values, **key_values)
+            else:
+                annotation = self.annotation if self.annotation else _type_
+                if len(values) == 0:
+                    if is_optional_type(annotation):
+                        _type_.__init__(None)
+                    else:
+                        raise TypeError(
+                            "Value mandatory for annotation {annotation}"
+                        )
+                elif not type_check(values[0], annotation):
+                    raise TypeError(
+                        "Value `{values[0]}` is not compatible with `{annotation}`"
+                    )
+
+        return wrapper
+
+    return typecheck_primitive_initialization
+
+
+def __getattr__(self, name):
+    if name in self:
+        return self[name]
+    return super(self.__class__).__getattribute__(name)
+
+
+def __setattr__(self, name, value):
+    if not type_check(value, self.__annotations__[name]):
+        raise TypeError(
+            f"value `{value}` does not fit {self.__annotations__[name]} for key {name}"
+        )
+    self[name] = value
+
+
+resolution = {
+    dict: {
+        "__init__": typecheck_dict_initialization,
+    },
+    str: {"__init__": insert_typecheck_for(str)},
+    int: {"__init__": insert_typecheck_for(int)},
+    float: {"__init__": insert_typecheck_for(float)},
+}
+
+
+class MadType(type):
+    def __new__(cls, name, bases, attributes):
+        # type is considered the first of bases
+        # it is not supported to inherit from different types
+        _type_ = bases[0]
+        if _type_ == dict or issubclass(_type_, dict):
+            attributes["__getattr__"] = __getattr__
+            attributes["__setattr__"] = __setattr__
+            attributes["__init__"] = typecheck_dict_initialization(
+                attributes.get("__init__", DOES_NOTHING)
+            )
+        else:
+            attributes["__init__"] = insert_typecheck_for(_type_)(
+                attributes.get("__init__", DOES_NOTHING)
+            )
+        return super().__new__(cls, name, bases, attributes)
+
+
+TYPE_TO_STRING: dict[type, str] = {
+    str: "string",
+    int: "integer",
+    list: "array",
+    float: "number",
+    tuple: "array",
+}
+
+
 def json_schema(
-    annotation: Union[Type["Type"], Type["Annotation"]],
+    annotation: Type["Type"],
     **kwargs,
 ) -> dict:
     result = kwargs
