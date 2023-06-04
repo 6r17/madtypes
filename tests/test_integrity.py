@@ -220,3 +220,25 @@ def test_pattern_raise_type_error():
 
     with pytest.raises(TypeError):
         PhoneNumber("oops")
+
+
+def test_object_validation():
+    class Item(dict, metaclass=MadType):
+        title: Optional[str]
+        content: Optional[str]
+
+        def is_valid(self, **kwargs):
+            """title is mandatory if content is absent"""
+            if not kwargs.get("content", None) and not kwargs.get(
+                "title", None
+            ):
+                raise TypeError(
+                    "Either `Title` or `Content` are mandatory for Item"
+                )
+
+    Item(
+        title="foo"
+    )  # we should be able to create with only one of title or content
+    Item(content="foo")
+    with pytest.raises(TypeError):
+        Item()

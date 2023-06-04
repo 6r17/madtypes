@@ -78,6 +78,8 @@ def typecheck_dict_initialization(method):
                         f"{key} is mandatory key of {self.__class__}"
                     )
 
+        if getattr(self, "is_valid", False):
+            self.is_valid(*values, **key_values)
         if method != DOES_NOTHING:
             # if user overwrites __init__ it is up to him to super
             method(self, *values, **key_values)
