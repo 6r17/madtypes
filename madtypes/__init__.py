@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import get_args, get_origin, Union, Type
 import inspect
 
@@ -152,6 +153,20 @@ resolution = {
 }
 
 
+@classmethod
+def required_fields(cls) -> list[str]:
+    return [
+        name
+        for name, field in cls.get_fields().items()
+        if not is_optional_type(field)
+    ]
+
+
+@classmethod
+def get_fields(cls):
+    return generate_annotations_dict(cls)
+
+
 class MadType(type):
     def __new__(cls, name, bases, attributes):
         # type is considered the first of bases
@@ -163,6 +178,8 @@ class MadType(type):
             attributes["__init__"] = typecheck_dict_initialization(
                 attributes.get("__init__", DOES_NOTHING)
             )
+            attributes["required_fields"] = required_fields
+            attributes["get_fields"] = get_fields
         else:
             attributes["__init__"] = insert_typecheck_for(_type_)(
                 attributes.get("__init__", DOES_NOTHING)
