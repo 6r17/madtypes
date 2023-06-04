@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="madtypes",
-    version="0.0.7",
+    version="0.0.8",
     author="6r17",
     author_email="patrick.borowy@proton.me",
     description="Python typing that raise TypeError at runtime",

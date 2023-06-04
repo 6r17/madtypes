@@ -1,107 +1,55 @@
 # madtypes
-- 💢 Python typing that raise TypeError at runtime
-- 📖 Render to dict or json
+- 💢 Python `Type` that raise TypeError at runtime
 - 🌐 Generate [Json-Schema](https://json-schema.org/)
-- 💪 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
+- 📖 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
+
 
 ```python
-from madtypes import Schema
 
-class Item(Schema)
+def test_simple_dict_incorrect_setattr(): # Python default typing 🤯 DOES NOT RAISE ERROR 🤯
+    class Simple(dict):
+        name: str
+
+    Simple(name=2)
+    a = Simple()
+    a.simple = 5
+
+
+class Person(dict, metaclass=MadType): # 💢 MadType does !
     name: str
 
-Item() # raise TypeError, name is missing
-Item(name=2) # raise TypeError, 2 is not an str
-Item(name="foo") # ok
 
-repr(Item(name="foo")) == {"name": "foo"}
-json.dumps(Item(name="foo")) => '{"name": "foo"}'
+def test_mad_dict_type_error_with_incorrect_creation():
+    with pytest.raises(TypeError):
+        Person(name=2)
 
-from typing import Optional
-class ItemWithOptional(Schema):
-    name: Optional[str]
 
-ItemWithOptional() # ok
+
 ```
+- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) proving the features and usage of MadType class
  
 - ### json-schema
-  
+
 ```python
-from madtypes import json_schema, Schema
-from typing import Optional
 
-def test_simple_json_schema():
-    class Item(Schema):
-        name: Optional[str]
+def test_object_json_schema():
+    class Item(dict, metaclass=MadType):
+        name: str
 
-    class Basket(Schema):
-        items: list[Item]
-
-    assert json_schema(Basket) == {
+    assert json_schema(Item) == {
         "type": "object",
-        "properties": {
-            "items": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {"name": {"type": "string"}},
-                },
-            }
-        },
-        "required": ["items"]
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
-
-
-def test_set_json_schema():
-    class Foo(Schema):
-        my_set: set[int]
-
-    schema = json_schema(Foo)
-    print(json.dumps(schema, indent=4))
-    assert schema == {
-        "type": "object",
-        "properties": {
-            "my_set": {
-                "type": "array",
-                "items": {"type": "integer"},
-                "uniqueItems": True,
-            }
-        },
-        "required": ["my_set"],
-    }
-    with pytest.raises(TypeError):
-        Foo(my_set=[1, 2, 3])
-    Foo(my_set={1, 2, 3})
-
-
-def test_enum():
-    class SomeEnum(Enum):
-        FOO = "Foo"
-        BAR = "Bar"
-        BAZ = "Baz"
-
-    class Item(Schema):
-        key: SomeEnum
-
-    schema = json_schema(Item)
-    print(schema)
-    assert schema == {
-        "type": "object",
-        "properties": {
-            "key": {"type": "string", "enum": ["Foo", "Bar", "Baz"]}
-        },
-        "required": ["key"],
-    }
-    Item(key=SomeEnum.FOO)
-    with pytest.raises(TypeError):
-        Item(key="Foo")
 ```
 
-- ### 🔥 Annotation attributes
-It is possible to use the `Annotation` metaclass customize a type.
+- 💪 [18](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) tests proving the features and usage of json-schema function.
+
+- ### 🔥 MadType attributes
+It is possible to use the `MadType` metaclass customize primitives as well.
 
 ```python
-class SomeStringAttribute(str, metaclass=Annotation):
+class SomeStringAttribute(str, metaclass=MadType):
    pass
 
 SomeDescriptedAttribute(2) # raise type error
@@ -110,7 +58,7 @@ SomeDescriptedAttribute(2) # raise type error
 It is possible to use this to further describe a field.
 
 ```python
-class SomeDescriptedAttribute(str, metaclass=Annotation):
+class SomeDescriptedAttribute(str, metaclass=MadType):
     annotation = str
     description = "Some description"
 ```
@@ -118,7 +66,7 @@ class SomeDescriptedAttribute(str, metaclass=Annotation):
 using `json_schema` on `SomeDescription` will include the description attribute
 
 ```python
-class DescriptedString(str, metaclass=Annotation):
+class DescriptedString(str, metaclass=MadType):
     description = "Some description"
     annotation = str
 
@@ -148,7 +96,7 @@ At the moment it is not checked nor tested, and will probably render an invalid 
 ```python
 
 def test_pattern_definition_allows_normal_usage():
-    class PhoneNumber(str, metaclass=Annotation):
+    class PhoneNumber(str, metaclass=MadType):
         annotation = str
         pattern = r"\d{3}-\d{3}-\d{4}"
 
@@ -156,7 +104,7 @@ def test_pattern_definition_allows_normal_usage():
 
 
 def test_pattern_raise_type_error():
-    class PhoneNumber(str, metaclass=Annotation):
+    class PhoneNumber(str, metaclass=MadType):
         annotation = str
         pattern = r"\d{3}-\d{3}-\d{4}"
 
@@ -165,7 +113,7 @@ def test_pattern_raise_type_error():
 
 
 def test_pattern_is_rendered_in_json_schema():
-    class PhoneNumber(str, metaclass=Annotation):
+    class PhoneNumber(str, metaclass=MadType):
         annotation = str
         pattern = r"^\d{3}-\d{3}-\d{4}$"
         description = "A phone number in the format XXX-XXX-XXXX"
@@ -195,19 +143,20 @@ to allow restrictions based on multiple fields.
 
 ```python
 
+
 def test_object_validation():
-    class Item(Schema):
+    class Item(dict, metaclass=MadType):
         title: Optional[str]
         content: Optional[str]
 
         def is_valid(self, **kwargs):
             """title is mandatory if content is absent"""
-            return (
-                False
-                if not kwargs.get("content", None)
-                and not kwargs.get("title", None)
-                else True
-            )
+            if not kwargs.get("content", None) and not kwargs.get(
+                "title", None
+            ):
+                raise TypeError(
+                    "Either `Title` or `Content` are mandatory for Item"
+                )
 
     Item(
         title="foo"
@@ -217,86 +166,48 @@ def test_object_validation():
         Item()
 
 
-
 ```
 
-### Multiple inheritance
+- ### Multiple inheritance
 
-Sometimes technical contraints should not be rendered publicly, and you still want
-to use the existing class definitions.
+It is possible to create a schema from existing schemas.
 
-For instance one of those occurances is multiple objects that have different
-realities in the code, but have the same buisness organisation.
-
-Instead of having multiple keys pointing to each object, we would prefer to have a unique
-item with fields from both classes.
-
-In that occurance we can use multiple inheritance to define a class by combining
-existing definitions.
+:warning: careful not to use MadType of sub-classes as this would trigger
+and infinite recursion.
 
 ```python
 
-
-def test_multiple_inheritance_json_schema():
-    class Foo(Schema):
+def test_multiple_inheritance():
+    class Foo(dict):
         foo: str
 
-    class Bar(Schema):
+    class Bar(dict):
         bar: str
 
-    class FooBar(Foo, Bar):
+    class FooBar(Foo, Bar, metaclass=MadType):
         pass
 
-    assert len(FooBar.get_fields()) == 2
-    schema = json_schema(FooBar)
-    print(schema)
-    assert schema == {
-        "type": "object",
-        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
-        "required": ["foo", "bar"],
-    }
-
+    FooBar(foo="foo", bar="bar")
+    with pytest.raises(TypeError):
+        FooBar()
 ```
 
 - ### Dynamicly remove a field
 
-It is possible to dynamicly remove a field from a class using the `subtract_fields(args: tuple[str])` decorator which will return a new class without the provided fields.
+Fields can be removed
 
 ```python
 
-def test_class_field_substraction():
-    class Item(Schema):
+
+def test_fields_can_be_removed():
+    @subtract_fields("name")
+    class Foo(dict, metaclass=MadType):
         name: str
         age: int
 
-    AgeLessItem = subtract_fields("age")(Item)
-    # we can dynamicly create a new class by substracting fields from it
-    assert len(AgeLessItem.get_fields()) == 1
-    with pytest.raises(TypeError):
-        AgeLessItem(name="foo", age=2)
-    AgeLessItem(name="foo")
+    Foo(age=2)
 
 ```
-
-- ### Immutables
-
-```python
-from madtypes import Immutable # Immutable inherits from Schema
-
-class Foo(Immutable):
-    name: str
-    age: Optional[int]
-
-e = Foo(name="foo")
-
-e.name = "bar" # raise TypeError
-
-
-b = Foo(**e) # intianciate a new copy
-b = Foo(age=2, **e) # create a copy with changes
-
-```
-
 [![Test](https://github.com/6r17/madtypes/actions/workflows/test.yaml/badge.svg)](./tests/test_schema.py)
 [![pypi](https://img.shields.io/pypi/v/madtypes)](https://pypi.org/project/madtypes/)
 ![python: >3.10](https://img.shields.io/badge/python-%3E3.10-informational)

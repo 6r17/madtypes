@@ -2,22 +2,20 @@ from enum import Enum
 from typing import Optional
 from madtypes import (
     json_schema,
-    Schema,
     Annotation,
-    Immutable,
     type_check,
-    subtract_fields,
+    remove_fields,
 )
 import pytest
 import json
 
 
-class Gender(Schema):
+class Gender(dict, metaclass=Annotation):
     female: int
     male: int
 
 
-class Item(Schema):
+class Item(dict, metaclass=Annotation):
     name: str
     gender: Gender
 
@@ -48,6 +46,22 @@ def test_attribute_set():
     assert a["name"] == "foo"
 
 
+def test_set():
+    a = Item(name="bob", gender=Gender(male=20, female=30))
+    a.gender = Gender(male=30, female=10)
+    assert a.gender.male == 30
+    with pytest.raises(TypeError):
+        a.gender.male = "foo"
+
+
+def test_extra_parameter():
+    class Foo(dict, metaclass=Annotation):
+        pass
+
+    with pytest.raises(TypeError):
+        Foo(name="foo")
+
+
 def test_json_dumps():
     import json
 
@@ -65,14 +79,6 @@ def test_json_dumps_and_load():
     a = Item(name="foo", gender=Gender(female=10, male=20))
     print(a)
     assert json.loads(json.dumps(a)) == a
-
-
-def test_set():
-    a = Item(name="bob", gender=Gender(male=20, female=30))
-    a.gender = Gender(male=30, female=10)
-    assert a.gender.male == 30
-    with pytest.raises(TypeError):
-        a.gender.male = "foo"
 
 
 def test_int_json_schema():
@@ -94,7 +100,7 @@ def test_tuple_json_schema():
 
 
 def test_object_json_schema():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         name: str
 
     assert json_schema(Item) == {
@@ -105,10 +111,10 @@ def test_object_json_schema():
 
 
 def test_array_of_object_json_schema():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         name: str
 
-    class Basket(Schema):
+    class Basket(dict, metaclass=Annotation):
         items: list[Item]
 
     schem = json_schema(Basket)
@@ -130,10 +136,10 @@ def test_array_of_object_json_schema():
 
 
 def test_tuple_of_object_json_schema():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         name: str
 
-    class Basket(Schema):
+    class Basket(dict, metaclass=Annotation):
         some_items: tuple[Item, Item]
 
     schem = json_schema(Basket)
@@ -180,7 +186,7 @@ def test_object_with_object_json_schema():
     }
 
 
-class PrimitiveArray(Schema):
+class PrimitiveArray(dict, metaclass=Annotation):
     items: list[str]
 
 
@@ -194,12 +200,12 @@ def test_annotation_array():
     }
 
 
-class PrimitiveDescriptiveArray(Annotation):
+class PrimitiveDescriptiveArray(list, metaclass=Annotation):
     annotation = list[int]
     description = "some description"
 
 
-class PrimitiveDescriptedArray(Schema):
+class PrimitiveDescriptedArray(dict, metaclass=Annotation):
     descripted_array: PrimitiveDescriptiveArray
 
 
@@ -219,11 +225,11 @@ def test_descriptive_primitive_array():
     }
 
 
-class Person(Schema):
+class Person(dict, metaclass=Annotation):
     name: str
 
 
-class ObjectArray(Schema):
+class ObjectArray(dict, metaclass=Annotation):
     persons: list[Person]
 
 
@@ -246,21 +252,21 @@ def test_object_array():
     }
 
 
-class DescriptiveName(Annotation):
+class DescriptiveName(str, metaclass=Annotation):
     annotation = str
     description = "How you'd call the beer"
 
 
-class Beer(Schema):
+class Beer(dict, metaclass=Annotation):
     name: DescriptiveName
 
 
-class ObjectDescriptiveArray(Annotation):
+class ObjectDescriptiveArray(list, metaclass=Annotation):
     annotation = list[Beer]
     description = "Lots of beers"
 
 
-class ObjectDescriptedArray(Schema):
+class ObjectDescriptedArray(dict, metaclass=Annotation):
     descripted_array: ObjectDescriptiveArray
 
 
@@ -289,7 +295,7 @@ def test_descriptive_object_array_json_schema():
     }
 
 
-class PrimitiveTuple(Schema):
+class PrimitiveTuple(dict, metaclass=Annotation):
     tupled: tuple[int, str]
 
 
@@ -309,7 +315,7 @@ def test_annotation_tuple_json_schema():
 
 
 def test_type_error():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         value: int
 
     with pytest.raises(TypeError):
@@ -317,7 +323,7 @@ def test_type_error():
 
 
 def test_instantiation_type_error():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         value: int
 
     with pytest.raises(TypeError):
@@ -325,7 +331,7 @@ def test_instantiation_type_error():
 
 
 def test_complex_type_error():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         value: list[int]
 
     with pytest.raises(TypeError):
@@ -333,7 +339,7 @@ def test_complex_type_error():
 
 
 def test_schemas_are_reprable():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         value: str
 
     e = Item(value="test")
@@ -341,47 +347,15 @@ def test_schemas_are_reprable():
 
 
 def test_schemas_expect_types():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         value: "str"
 
     with pytest.raises(SyntaxError):
         json_schema(Item)
 
 
-def test_immutable():
-    class SomeImmutable(Immutable):
-        name: str
-
-    e = SomeImmutable(name="foo")
-    with pytest.raises(TypeError):
-        e.name = "bar"
-
-    with pytest.raises(TypeError):
-        e["name"] = "bar"
-
-
-def test_copy():
-    class SomeImmutable(Immutable):
-        name: str
-        age: int
-
-    with pytest.raises(TypeError):
-        a = SomeImmutable(name="foo")  # missing age
-
-    class AnotherImmutable(Immutable):
-        name: str
-        age: Optional[int]
-
-    a = AnotherImmutable(name="foo")
-    b = AnotherImmutable(**a)
-    assert b.name == "foo"
-    c = SomeImmutable(age=2, **a)
-    assert c.name == "foo"
-    assert c.age == 2
-
-
 def test_custom_method():
-    class SomeClass(Schema):
+    class SomeClass(dict, metaclass=Annotation):
         name: str
 
         def method(self) -> str:
@@ -390,8 +364,8 @@ def test_custom_method():
     assert SomeClass(name="foo").method() == "foo"
 
 
-def test_optional_json_json_schema():
-    class SomeClassWithOptional(Schema):
+def test_optional_json_schema():
+    class SomeClassWithOptional(dict, metaclass=Annotation):
         name: Optional[str]
 
     SomeClassWithOptional()
@@ -403,7 +377,7 @@ def test_optional_json_json_schema():
 
 
 def test_optional_json_schema_with_array():
-    class SomeClassWithOptional(Schema):
+    class SomeClassWithOptional(dict, metaclass=Annotation):
         elements: Optional[list[int]]
 
     SomeClassWithOptional()
@@ -421,7 +395,7 @@ def test_descripted_value_set():
         description = "foo"
         annotation = str
 
-    class SomeItem(Schema):
+    class SomeItem(dict, metaclass=Annotation):
         name: SomeDescriptedField
 
     with pytest.raises(TypeError):
@@ -439,7 +413,7 @@ def test_descripted_list_value_set():
         description = "foo"
         annotation = list[str]
 
-    class SomeListItem(Schema):
+    class SomeListItem(dict, metaclass=Annotation):
         names: SomeDescriptedListField
 
     values = SomeDescriptedListField(["1", "2", "3"])
@@ -450,17 +424,12 @@ def test_descripted_list_value_set():
     a = SomeListItem(names=SomeDescriptedListField(["1", "2", "3"]))
     assert len(a.names) == 3
     assert json.dumps(a) == '{"names": ["1", "2", "3"]}'
-    with pytest.raises(AttributeError):  # append does not exist
-        a.append("foo")
 
 
 def test_descripted_list_object_value_set():
-    class Foo(Schema):
-        name: str
-
-    class DescriptedFoo(Foo, metaclass=Annotation):
+    class DescriptedFoo(dict, metaclass=Annotation):
         description = "description"
-        annotation = Foo
+        name: str
 
     DescriptedFoo(name="foo")
     with pytest.raises(TypeError):
@@ -472,7 +441,7 @@ def test_descripted_json_json_schema():
         description = "Some description"
         annotation = str
 
-    class DescriptedItem(Schema):
+    class DescriptedItem(dict, metaclass=Annotation):
         descripted: DescriptedString
 
     print(json_schema(DescriptedItem))
@@ -489,7 +458,7 @@ def test_descripted_json_json_schema():
 
 
 def test_object_validation():
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):  # TODO
         title: Optional[str]
         content: Optional[str]
 
@@ -511,7 +480,7 @@ def test_object_validation():
 
 
 def test_set_set():
-    class Basket(Schema):
+    class Basket(dict, metaclass=Annotation):
         content: set[int]
 
     Basket(content={1, 2, 3})
@@ -532,15 +501,6 @@ def test_type_check_set_of_primitive():
 def test_type_check_optional_primitive():
     assert type_check(1, Optional[int])
     assert type_check("foo", Optional[int]) == False
-
-
-def test_pattern_definition_with_incorect_type():
-    class PhoneNumber(int, metaclass=Annotation):
-        annotation = int
-        pattern = r"\b\d{3}-\d{3}-\d{4}\b"
-
-    with pytest.raises(SyntaxError):
-        PhoneNumber(2)
 
 
 def test_pattern_definition_allows_normal_usage():
@@ -566,7 +526,7 @@ def test_pattern_is_rendered_in_json_schema():
         pattern = r"^\d{3}-\d{3}-\d{4}$"
         description = "A phone number in the format XXX-XXX-XXXX"
 
-    class Contact(Schema):
+    class Contact(dict, metaclass=Annotation):
         phone: PhoneNumber
 
     schema = json_schema(Contact)
@@ -584,8 +544,15 @@ def test_pattern_is_rendered_in_json_schema():
     }
 
 
+def test_dict_objet_keep_annotations():
+    class Foo(dict):
+        foo: str
+
+    assert len(Foo.__annotations__) == 1
+
+
 def test_list_json_schema():
-    class Foo(Schema):
+    class Foo(dict, metaclass=Annotation):
         my_set: list[int]
 
     schema = json_schema(Foo)
@@ -603,7 +570,7 @@ def test_list_json_schema():
 
 
 def test_set_json_schema():
-    class Foo(Schema):
+    class Foo(dict, metaclass=Annotation):
         my_set: set[int]
 
     schema = json_schema(Foo)
@@ -630,7 +597,7 @@ def test_enum():
         BAR = "Bar"
         BAZ = "Baz"
 
-    class Item(Schema):
+    class Item(dict, metaclass=Annotation):
         key: SomeEnum
 
     schema = json_schema(Item)
@@ -647,28 +614,37 @@ def test_enum():
         Item(key="Foo")
 
 
-def test_class_field_substraction():
-    class Item(Schema):
+def test_class_field_subtraction():
+    class Item(dict, metaclass=Annotation):
         name: str
         age: int
 
-    ageLessItem = subtract_fields("age")(Item)
-    # we can dynamicly create a new class by substracting fields from it
-    assert len(ageLessItem.get_fields()) == 1
+    AgeLessItem = remove_fields("age")(Item)
+    assert len(AgeLessItem.get_fields()) == 1
+    print(AgeLessItem.get_fields())
     with pytest.raises(TypeError):
-        ageLessItem(name="foo", age=2)
-    ageLessItem(name="foo")
+        AgeLessItem(name="foo", age=2)
+    AgeLessItem(name="foo")
+    print(AgeLessItem)
     with pytest.raises(AttributeError):
         assert getattr(Item, "age")
 
 
-def test_json_schema_after_substraction():
-    class Item(Schema):
+def test_json_schema_after_subtraction():
+    class Item(dict, metaclass=Annotation):  # TODO
         name: str
         age: int
 
-    ageLessItem = subtract_fields("age")(Item)
+    ageLessItem = remove_fields("age")(Item)
     schema = json_schema(ageLessItem)
+    assert schema == {}
+
+
+def test_annotated_dict():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    schema = json_schema(Foo)
     print(schema)
     assert schema == {
         "type": "object",
@@ -678,10 +654,10 @@ def test_json_schema_after_substraction():
 
 
 def test_multiple_inheritance_json_schema():
-    class Foo(Schema):
+    class Foo(dict, metaclass=Annotation):
         foo: str
 
-    class Bar(Schema):
+    class Bar(dict, metaclass=Annotation):
         bar: str
 
     class FooBar(Foo, Bar):
@@ -698,10 +674,10 @@ def test_multiple_inheritance_json_schema():
 
 
 def test_multiple_inheritance_integrity():
-    class Foo(Schema):
+    class Foo(dict, metaclass=Annotation):
         foo: str
 
-    class Bar(Schema):
+    class Bar(dict, metaclass=Annotation):
         bar: str
 
     class FooBar(Foo, Bar):
@@ -711,16 +687,39 @@ def test_multiple_inheritance_integrity():
 
 
 def test_json_schema_after_edition_and_multiple_inheritance():
-    class Person(Schema):
+    class Person(dict, metaclass=Annotation):
         name: str
         age: int
 
-    class Contact(Schema):
+    class Contact(dict, metaclass=Annotation):
         phone: str
 
-    agelessPerson = subtract_fields("age")(Person)
+    agelessPerson = remove_fields("age")(Person)
 
     class NamedContact(agelessPerson, Contact):
         pass
 
     NamedContact(name="foo", phone="baz")
+
+
+def test_annotated_dict_type_check():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    Foo(name="bar")
+    with pytest.raises(TypeError):
+        Foo()
+
+
+def test_annotated_dict_value_integrity():
+    class Foo(dict, metaclass=Annotation):
+        name: str
+
+    a = Foo(name="bar")
+    assert a["name"] == "bar"
+    b = Foo(name="boz")
+    assert a["name"] == "bar"
+    assert b["name"] == "boz"
+    assert a.name == "bar"
+    a.name = "test"
+    assert a.name == "test"
