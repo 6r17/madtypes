@@ -329,3 +329,27 @@ def test_enum():
     Item(key=SomeEnum.FOO)
     with pytest.raises(TypeError):
         Item(key="Foo")
+
+
+def test_pattern_is_rendered_in_json_schema():
+    class PhoneNumber(str, metaclass=MadType):
+        annotation = str
+        pattern = r"^\d{3}-\d{3}-\d{4}$"
+        description = "A phone number in the format XXX-XXX-XXXX"
+
+    class Contact(dict, metaclass=MadType):
+        phone: PhoneNumber
+
+    schema = json_schema(Contact)
+    print(json.dumps(schema, indent=4))
+    assert schema == {
+        "type": "object",
+        "properties": {
+            "phone": {
+                "pattern": "^\\d{3}-\\d{3}-\\d{4}$",
+                "description": "A phone number in the format XXX-XXX-XXXX",
+                "type": "string",
+            }
+        },
+        "required": ["phone"],
+    }

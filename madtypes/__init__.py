@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from typing import get_args, get_origin, Union, Type
 import inspect
@@ -111,6 +112,21 @@ def insert_typecheck_for(_type_):
             if method != DOES_NOTHING:
                 method(*values, **key_values)
             else:
+                if (
+                    _type_ == str
+                    and getattr(self, "pattern", False)
+                    and (
+                        not values[0]
+                        or not re.fullmatch(
+                            getattr(self, "pattern"), values[0]
+                        )
+                    )
+                ):
+                    if len(values) != 0:
+                        raise TypeError(
+                            f"{values[0]} did not match {self.pattern}"
+                        )
+
                 annotation = self.annotation if self.annotation else _type_
                 if len(values) == 0:
                     if is_optional_type(annotation):

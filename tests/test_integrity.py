@@ -205,4 +205,18 @@ def test_fields_can_be_removed():
     Foo(age=2)
 
 
-# json_schema
+def test_pattern_definition_allows_normal_usage():
+    class PhoneNumber(str, metaclass=MadType):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    PhoneNumber("000-000-0000")
+
+
+def test_pattern_raise_type_error():
+    class PhoneNumber(str, metaclass=MadType):
+        annotation = str
+        pattern = r"\d{3}-\d{3}-\d{4}"  # Regex pattern to match a phone number in the format XXX-XXX-XXXX
+
+    with pytest.raises(TypeError):
+        PhoneNumber("oops")
