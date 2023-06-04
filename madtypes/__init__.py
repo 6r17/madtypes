@@ -113,7 +113,7 @@ def insert_typecheck_for(_type_):
                 method(*values, **key_values)
             else:
                 if (
-                    _type_ == str
+                    (_type_ == str or _type_ == bytes)
                     and getattr(self, "pattern", False)
                     and (
                         not values[0]
