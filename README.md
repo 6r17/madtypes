@@ -12,15 +12,15 @@
 
 ```python
 
+from typing import TypedDict
 from madtypes import MadType
 
 def test_simple_dict_incorrect_setattr(): # 🤯 DOES NOT RAISE ERROR 🤯
-    class Simple(dict):
+    class Simple(TypedDict):
         name: str
 
     Simple(name=2)
-    a = Simple()
-    a.simple = 5
+    a: Simple = { "name": 2 }
 
 
 class Person(dict, metaclass=MadType): # 💢 MadType does !
