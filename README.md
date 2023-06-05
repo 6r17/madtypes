@@ -26,7 +26,26 @@ def test_mad_dict_type_error_with_incorrect_creation():
 
 
 ```
+
 - 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) proving the features and usage of MadType class
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃               Benchmark ┃ Min     ┃ Max     ┃ Mean    ┃ Min (+)         ┃ Max (+)         ┃ Mean (+)        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ Incorrect instantiation │ 0.000   │ 0.000   │ 0.000   │ 0.000 (-3.2x)   │ 0.000 (-5.6x)   │ 0.000 (-4.1x)   │
+│   Correct instantiation │ 0.000   │ 0.000   │ 0.000   │ 0.000 (-17.7x)  │ 0.000 (-10.1x)  │ 0.000 (-12.4x)  │
+└─────────────────────────┴─────────┴─────────┴─────────┴─────────────────┴─────────────────┴─────────────────┘
+
+:warning:
+- MadType instanciation is much slower than pure Python.
+- Manually adding type-check inside a class is more effective than using MadType
+
+
+**MadType is appropriate to apply when** :
+- The schema has to be communicated with the team
+- The described data is a business related element
+- You are using MadType to assert valid data
+- You are debugging
+- The instantiation occurs rarely
  
 - ### json-schema
 
