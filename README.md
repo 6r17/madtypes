@@ -2,8 +2,8 @@
 - 💢 Python `Type` that raise TypeError at runtime
 - 🌐 Generate [Json-Schema](https://json-schema.org/)
 - 📖 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
-
-
+- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) for the features and usage of MadType class
+- 💪 [18 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) for the features and usage of json-schema function
 ```python
 
 def test_simple_dict_incorrect_setattr(): # Python default typing 🤯 DOES NOT RAISE ERROR 🤯
@@ -26,7 +26,24 @@ def test_mad_dict_type_error_with_incorrect_creation():
 
 
 ```
-- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) proving the features and usage of MadType class
+
+
+|     [![Benchmark](https://github.com/6r17/madtypes/actions/workflows/benchmark.yaml/badge.svg)](https://github.com/6r17/madtypes/actions/workflows/benchmark.yaml)               | Min   | Max   | Mean   | Min (+)        | Max (+)        | Mean (+)       |
+|----------------------------:|-------|-------|--------|----------------|----------------|----------------|
+| Correct instantiation      | 0.000 | 0.000 | 0.000  | 0.000 (18.1x) | 0.000 (23.8x) | 0.000 (17.3x) |
+| Incorrect instantiation    | 0.000 | 0.000 | 0.000  | 0.000 (2.6x) | 0.000 (3.7x) | 0.000 (2.9x) |
+
+
+- :warning: MadType instanciation is much slower than pure Python.
+- :warning: Manually adding type-check inside a class is more effective than using MadType
+
+
+**MadType is appropriate to apply when** :
+- The described data is a business related element
+- You are using MadType to assert valid data
+- You are debugging
+- The instantiation occurs rarely
+- The schema has to be communicated with the team
  
 - ### json-schema
 
@@ -43,9 +60,9 @@ def test_object_json_schema():
     }
 ```
 
-- 💪 [18](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) tests proving the features and usage of json-schema function.
 
-- ### 🔥 MadType attributes
+
+- ### Further customization
 It is possible to use the `MadType` metaclass customize primitives as well.
 
 ```python
@@ -55,7 +72,9 @@ class SomeStringAttribute(str, metaclass=MadType):
 SomeDescriptedAttribute(2) # raise type error
 ```
 
-It is possible to use this to further describe a field.
+- ### Field description
+
+It is possible to use this to describe a field.
 
 ```python
 class SomeDescriptedAttribute(str, metaclass=MadType):
@@ -194,7 +213,7 @@ def test_multiple_inheritance():
 
 - ### Dynamicly remove a field
 
-Fields can be removed
+Fields can be removed.
 
 ```python
 
@@ -216,14 +235,3 @@ def test_fields_can_be_removed():
 ```bash
 pip3 install madtypes
 ```
-
-- ### Context
-`madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
-
-- The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
-
-- Schema class and it's attributes inherit from `dict`. Attributes are considered values of the dictionnary.
-
-- It renders natively to `JSON`, facilitating data serialization and interchange.
-
-- The library also includes a `json_schema()` function that generates JSON-Schema representations based on class definitions.
