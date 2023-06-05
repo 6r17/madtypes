@@ -2,7 +2,8 @@
 - 💢 Python `Type` that raise TypeError at runtime
 - 🌐 Generate [Json-Schema](https://json-schema.org/)
 - 📖 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
-
+- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) for the features and usage of MadType class
+- 💪 [18 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) for the features and usage of json-schema function
 
 ```python
 
@@ -27,7 +28,6 @@ def test_mad_dict_type_error_with_incorrect_creation():
 
 ```
 
-- 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) proving the features and usage of MadType class
 
 |     Benchmark               | Min   | Max   | Mean   | Min (+)        | Max (+)        | Mean (+)       |
 |----------------------------:|-------|-------|--------|----------------|----------------|----------------|
@@ -61,9 +61,9 @@ def test_object_json_schema():
     }
 ```
 
-- 💪 [18](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) tests proving the features and usage of json-schema function.
 
-- ### 🔥 MadType attributes
+
+- ### Further customization
 It is possible to use the `MadType` metaclass customize primitives as well.
 
 ```python
@@ -73,7 +73,9 @@ class SomeStringAttribute(str, metaclass=MadType):
 SomeDescriptedAttribute(2) # raise type error
 ```
 
-It is possible to use this to further describe a field.
+- ### Field description
+
+It is possible to use this to describe a field.
 
 ```python
 class SomeDescriptedAttribute(str, metaclass=MadType):
@@ -212,7 +214,7 @@ def test_multiple_inheritance():
 
 - ### Dynamicly remove a field
 
-Fields can be removed
+Fields can be removed.
 
 ```python
 
