@@ -3,15 +3,15 @@ import pytest
 from typing import Optional
 from madtypes import MadType, subtract_fields
 from enum import Enum
+from typing import TypedDict
 
 
 def test_simple_dict_incorrect_setattr():
-    class Simple(dict):
+    class Simple(TypedDict):
         name: str
 
     Simple(name=2)
-    a = Simple()
-    a.simple = 5
+    a: Simple = {"name": 2}
 
 
 class Person(dict, metaclass=MadType):
