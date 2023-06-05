@@ -32,4 +32,4 @@ def benchmark_mad():
         pass
 
 
-__benchmarks__ = [(benchmark_simple, benchmark_mad, "Incorrect instantiation")]
+__benchmarks__ = [(benchmark_mad, benchmark_simple, "Incorrect instantiation")]

@@ -19,4 +19,4 @@ def benchmark_mad():
     MadItem(name="name", age=2)
 
 
-__benchmarks__ = [(benchmark_simple, benchmark_mad, "Correct instantiation")]
+__benchmarks__ = [(benchmark_mad, benchmark_simple, "Correct instantiation")]
