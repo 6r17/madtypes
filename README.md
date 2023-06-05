@@ -4,7 +4,6 @@
 - 📖 [Type hints cheat sheet](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html)
 - 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) for the features and usage of MadType class
 - 💪 [18 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) for the features and usage of json-schema function
-
 ```python
 
 def test_simple_dict_incorrect_setattr(): # Python default typing 🤯 DOES NOT RAISE ERROR 🤯
@@ -29,10 +28,10 @@ def test_mad_dict_type_error_with_incorrect_creation():
 ```
 
 
-|     Benchmark               | Min   | Max   | Mean   | Min (+)        | Max (+)        | Mean (+)       |
+|     [![Benchmark](https://github.com/6r17/madtypes/actions/workflows/benchmark.yaml/badge.svg)](https://github.com/6r17/madtypes/actions/workflows/benchmark.yaml)               | Min   | Max   | Mean   | Min (+)        | Max (+)        | Mean (+)       |
 |----------------------------:|-------|-------|--------|----------------|----------------|----------------|
-| Incorrect instantiation    | 0.000 | 0.000 | 0.000  | 0.000 (3.2x) | 0.000 (5.6x) | 0.000 (4.1x) |
-| Correct instantiation      | 0.000 | 0.000 | 0.000  | 0.000 (17.7x) | 0.000 (10.1x) | 0.000 (12.4x) |
+| Correct instantiation      | 0.000 | 0.000 | 0.000  | 0.000 (18.1x) | 0.000 (23.8x) | 0.000 (17.3x) |
+| Incorrect instantiation    | 0.000 | 0.000 | 0.000  | 0.000 (2.6x) | 0.000 (3.7x) | 0.000 (2.9x) |
 
 
 - :warning: MadType instanciation is much slower than pure Python.
