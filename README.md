@@ -236,14 +236,3 @@ def test_fields_can_be_removed():
 ```bash
 pip3 install madtypes
 ```
-
-- ### Context
-`madtypes` is a Python3.9+ library that provides enhanced data type checking capabilities. It offers features beyond the scope of [PEP 589](https://peps.python.org/pep-0589/) and is built toward an industrial use-case that require reliability.
-
-- The library introduces a Schema class that allows you to define classes with strict type enforcement. By inheriting from Schema, you can specify the expected data structure and enforce type correctness at runtime. If an incorrect type is assigned to an attribute, madtypes raises a TypeError.
-
-- Schema class and it's attributes inherit from `dict`. Attributes are considered values of the dictionnary.
-
-- It renders natively to `JSON`, facilitating data serialization and interchange.
-
-- The library also includes a `json_schema()` function that generates JSON-Schema representations based on class definitions.
