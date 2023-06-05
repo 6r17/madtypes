@@ -5,10 +5,10 @@
 - 💪 [32 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_integrity.py) for the features and usage of MadType class
 - 💪 [18 tests](https://github.com/6r17/madtypes/blob/madmeta/tests/test_json_schema.py) for the features and usage of json-schema function
 
-- **[pep589](https://peps.python.org/pep-0589/) does not perform type-checking.**
+- **[PEP589](https://peps.python.org/pep-0589/) does not perform type-checking.**
 > TypedDict type definitions could plausibly used to perform runtime type checking of dictionaries. For example, they could be used to validate that a JSON object conforms to the schema specified by a TypedDict type. This PEP doesn’t include such functionality, since the focus of this proposal is static type checking only, and other existing types do not support this, as discussed in Class-based syntax. Such functionality can be provided by a third-party library using the [typing_inspect](https://github.com/ilevkivskyi/typing_inspect) third-party module, for example.
 
-In contrast to typing_inspect, MadTypes propose a metaclass that allows type validation on classes. While it's a tool that focus on realiability, it's not the best when it comes to speed.
+In contrast to `typing_inspect`, `MadTypes` propose a metaclass that allows type validation on classes. While it's a tool that focus on realiability, it's not the best when it comes to speed.
 
 ```python
 
