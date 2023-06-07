@@ -18,10 +18,12 @@ def remove_optional(typing_annotation):
     return get_args(typing_annotation)[0]
 
 
-def type_check(value, annotation):
+def type_check(value, annotation, prev_optional: bool = False):
     origin = get_origin(annotation)
     args = get_args(annotation)
 
+    if prev_optional and value is None:
+        return True
     if origin is None:
         # Non-generic type
         return isinstance(value, annotation)
@@ -29,7 +31,7 @@ def type_check(value, annotation):
         # typing.Union cannot be used by is_instance
         if is_optional_type(annotation):
             inner_annotation = args[0]
-            return type_check(value, inner_annotation)
+            return type_check(value, inner_annotation, prev_optional=True)
         elif isinstance(value, origin):
             if args:
                 # Parametrized list annotation
@@ -114,6 +116,10 @@ def insert_typecheck_for(_type_):
             if method != DOES_NOTHING:
                 method(*values, **key_values)
             else:
+                if _type_ == list:
+                    self.extend(*values)
+                elif _type_ == set:
+                    self.update(*values)
                 if (
                     (_type_ == str or _type_ == bytes)
                     and getattr(self, "pattern", False)
@@ -130,16 +136,16 @@ def insert_typecheck_for(_type_):
                         )
 
                 annotation = self.annotation if self.annotation else _type_
-                if len(values) == 0:
+                if len(values) == 0 or values[0] == None:
                     if is_optional_type(annotation):
                         _type_.__init__(None)
                     else:
                         raise TypeError(
-                            "Value mandatory for annotation {annotation}"
+                            f"Value mandatory for annotation {annotation}"
                         )
                 elif not type_check(values[0], annotation):
                     raise TypeError(
-                        "Value `{values[0]}` is not compatible with `{annotation}`"
+                        f"Value `{values[0]}` is not compatible with `{annotation}`"
                     )
 
         return wrapper
@@ -150,7 +156,10 @@ def insert_typecheck_for(_type_):
 def __getattr__(self, name):
     if name in self:
         return self[name]
-    return super(self.__class__).__getattribute__(name)
+    try:
+        return super(self.__class__).__getattribute__(name)
+    except AttributeError:
+        return None
 
 
 def __setattr__(self, name, value):
