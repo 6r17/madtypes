@@ -73,6 +73,7 @@ def test_mad_dict_is_ok_with_optional_type():
     opt = Opt(name="foo")
     assert opt["name"] == "foo"
     assert opt.name == "foo"
+    Opt(name=None)
 
 
 def test_mad_dict_type_error__with_erronous_optional_type():
@@ -114,8 +115,15 @@ def test_mad_optional_primitive(_type_):
 
 @pytest.mark.parametrize(
     "value",
-    [(str, "correct"), (int, 2), (float, 2.4), (bytes, b"hello")],
-    ids=["string", "int", "float", "bytes"],
+    [
+        (str, "correct"),
+        (int, 2),
+        (float, 2.4),
+        (bytes, b"hello"),
+        (list, [1]),
+        (set, {1}),
+    ],
+    ids=["string", "int", "float", "bytes", "list", "set"],
 )
 def test_correct_mad_primitive(value):
     _type_, correct = value
@@ -124,7 +132,7 @@ def test_correct_mad_primitive(value):
         annotation = _type_
         description = f"{_type_}"
 
-    SomeType(correct)
+    assert SomeType(correct) == correct
 
     with pytest.raises(TypeError):
         SomeType()
@@ -132,8 +140,15 @@ def test_correct_mad_primitive(value):
 
 @pytest.mark.parametrize(
     "value",
-    [(str, 2), (int, "2"), (float, "2"), (bytes, "incorrect")],
-    ids=["string", "int", "float", "bytes"],
+    [
+        (str, 2),
+        (int, "2"),
+        (float, "2"),
+        (bytes, "incorrect"),
+        (list, "incorrect"),
+        (set, "incorrect"),
+    ],
+    ids=["string", "int", "float", "bytes", "list", "set"],
 )
 def test_incorrect_mad_primitive(value):
     _type_, incorrect = value
